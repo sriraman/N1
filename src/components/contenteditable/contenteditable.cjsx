@@ -5,6 +5,8 @@ React = require 'react'
 ClipboardService = require './clipboard-service'
 FloatingToolbarContainer = require './floating-toolbar-container'
 
+AutomaticListManager = require './automatic-list-manager'
+
 ###
 Public: A modern, well-behaved, React-compatible contenteditable
 
@@ -59,6 +61,28 @@ class Contenteditable extends React.Component
       onSubstitutionPerformed: (editableNode) ->
       onMouseUp: (editableNode, event, range) ->
 
+  corePlugins: [AutomaticListManager]
+
+  coreLifecycleCallbacks:
+    onInput: [AutomaticListCreator]
+    onInputAfter: [DOMNormalizer, SelectionNormalizer]
+
+  # We allow extensions to read, and mutate the:
+  #
+  # 1. DOM of the contenteditable
+  # 2. The Selection
+  # 3. The innerState of the component
+  #
+  # We treat mutations as a single atomic change (even if multiple actual
+  # mutations happened).
+  atomicEdit: (editingFunction, extraArgs=[]) ->
+    @_teardownSelectionListeners()
+    innerStateProxy =
+      get: => return @innerState
+      set: (newInnerState) => @setInnerState(newInnerState)
+    args = [@_editableNode(), document.getSelection(), innerStateProxy]
+    editingFunction.apply(null, args.concat(extraArgs))
+    @_setupSelectionListeners()
 
   constructor: (@props) ->
     @innerState = {}
@@ -202,62 +226,45 @@ class Contenteditable extends React.Component
       document.execCommand("underline")
     return
 
+  # Every time the contents of the contenteditable DOM node change, the
+  # `onInput` event gets fired.
+  #
+  # If we are in the middle of an `atomic` change transaction, we ignore
+  # those changes.
+  #
+  # At all other times we take the change, apply various filters to the
+  # new content, then notify our parent that the content has been updated.
   _onInput: (event) =>
     return if @_ignoreInputChanges
     @_ignoreInputChanges = true
-
     @_resetInnerStateOnInput()
 
-    @_runCoreFilters()
-
-    @props.lifecycleCallbacks.onInput(@_editableNode(), event)
-
-    @_normalize()
+    @_runLifecycleCallbacks([
+      @coreLifecycleCallbacks.onInput
+      @props.lifecycleCallbacks.onInput
+      @coreLifecycleCallbacks.onInputAfter
+    ], event)
 
     @_saveSelectionState()
 
-    @_saveNewHtml()
+    @_notifyParentOfChange()
 
     @_ignoreInputChanges = false
     return
 
+  _runLifecycleCallbacks: (callbacks=[], extraArgs...) =>
+    callbacks = _.flatten callbacks
+    @atomicEdit(callback, extraArgs) for callback in callbacks
+
   _resetInnerStateOnInput: ->
-    @_justCreatedList = false
+    @_autoCreatedListFromText = false
     @setInnerState dragging: false if @innerState.dragging
     @setInnerState doubleDown: false if @innerState.doubleDown
 
-  _runCoreFilters: ->
-    @_createLists()
-
-  _saveNewHtml: ->
+  _notifyParentOfChange: ->
     @props.onChange(target: {value: @_editableNode().innerHTML})
 
-  # Determines if the user wants to add an ordered or unordered list.
-  _createLists: ->
-    # The `execCommand` will update the DOM and move the cursor. Since
-    # this is happening in the middle of an `_onInput` callback, we want
-    # the whole operation to look "atomic". As such we'll do any necessary
-    # DOM cleanup and fire the `exec` command with the listeners off, then
-    # re-enable at the end.
-    if @_resetListToText
-      @_resetListToText = false
-      return
-
-    updateDOM = (command) =>
-      @_teardownSelectionListeners()
-      document.execCommand(command)
-      selection = document.getSelection()
-      selection.anchorNode.parentElement.innerHTML = ""
-      @_setupSelectionListeners()
-
-    text = @_textContentAtCursor()
-    if (/^\d\.\s$/).test text
-      @_justCreatedList = text
-      updateDOM("insertOrderedList")
-    else if (/^[*-]\s$/).test text
-      @_justCreatedList = text
-      updateDOM("insertUnorderedList")
-
+  # We need to detect if the first 
   _onBackspaceDown: (event) ->
     if document.getSelection()?.isCollapsed
 
@@ -265,18 +272,18 @@ class Contenteditable extends React.Component
       # standard document.execCommand('outdent') doesn't work for the
       # first item in lists. As a result, we need to detect if we're
       # trying to outdent the first item in a list.
-      if @_atStartOfList()
-        li = @_closestAtCursor("li")
-        list = @_closestAtCursor("ul, ol")
+      if DOMUtils.atStartOfList()
+        li = DOMUtils.closestAtCursor("li")
+        list = DOMUtils.closestAtCursor("ul, ol")
         return unless li and list
         event.preventDefault()
         if list.querySelectorAll('li')?[0] is li # We're in first li
           hasContent = (li.textContent ? "").trim().length > 0
-          if @_justCreatedList
-            @_resetListToText = true
-            @_replaceFirstListItem(li, @_justCreatedList)
+          if @_autoCreatedListFromText
+            @_ignoreAutomaticListCreation = true
+            @_replaceFirstListItem(li, @_autoCreatedListFromText)
           else if hasContent
-            @_resetListToText = true
+            @_ignoreAutomaticListCreation = true
             @_replaceFirstListItem(li, li.innerHTML)
           else
             @_replaceFirstListItem(li, "")
@@ -286,20 +293,9 @@ class Contenteditable extends React.Component
   # The native document.execCommand('outdent')
   _outdent: ->
 
-  _closestAtCursor: (selector) ->
-    selection = document.getSelection()
-    return unless selection?.isCollapsed
-    return @_closest(selection.anchorNode, selector)
-
-  # https://developer.mozilla.org/en-US/docs/Web/API/Element/closest
-  # Only Elements (not Text nodes) have the `closest` method
-  _closest: (node, selector) ->
-    el = if node instanceof HTMLElement then node else node.parentElement
-    return el.closest(selector)
-
   _replaceFirstListItem: (li, replaceWith) ->
     @_teardownSelectionListeners()
-    list = @_closest(li, "ul, ol")
+    list = DOMUtils.closest(li, "ul, ol")
 
     if replaceWith.length is 0
       replaceWith = replaceWith.replace /\s/g, "&nbsp;"
@@ -342,12 +338,10 @@ class Contenteditable extends React.Component
     selection = document.getSelection()
     if selection?.isCollapsed
       # Only Elements (not Text nodes) have the `closest` method
-      li = @_closestAtCursor("li")
+      li = DOMUtils.closestAtCursor("li")
       if li
         if event.shiftKey
-          list = @_closestAtCursor("ul, ol")
-          # BUG: As of 9/25/15 if you outdent the first item in a list, it
-          # doesn't work :(
+          list = DOMUtils.closestAtCursor("ul, ol")
           if list.querySelectorAll('li')?[0] is li # We're in first li
             @_replaceFirstListItem(li, li.innerHTML)
           else
@@ -378,16 +372,6 @@ class Contenteditable extends React.Component
       return selection.anchorNode.textContent[selection.anchorOffset - 1] is "\t"
     else return false
 
-  _atStartOfList: ->
-    selection = document.getSelection()
-    anchor = selection.anchorNode
-    return false if not selection.isCollapsed
-    return true if anchor?.nodeName is "LI"
-    return false if selection.anchorOffset > 0
-    li = @_closest(anchor, "li")
-    return unless li
-    return DOMUtils.isFirstChild(li, anchor)
-
   _atBeginning: ->
     selection = document.getSelection()
     return false if not selection.isCollapsed
@@ -407,12 +391,6 @@ class Contenteditable extends React.Component
       selection.setBaseAndExtent(node, offset - 1, node, offset)
       document.execCommand("delete")
       @_setupSelectionListeners()
-
-  _textContentAtCursor: ->
-    selection = document.getSelection()
-    if selection.isCollapsed
-      return selection.anchorNode?.textContent
-    else return null
 
   # This component works by re-rendering on every change and restoring the
   # selection. This is also how standard React controlled inputs work too.
@@ -477,7 +455,7 @@ class Contenteditable extends React.Component
     els = @_editableNode().querySelectorAll('ul')
 
     # This mutates the DOM in place.
-    DOMUtils.collapseAdjacentElements(els)
+    DOMUtils.Mutating.collapseAdjacentElements(els)
 
   # After an input, the selection can sometimes get itself into a state
   # that either can't be restored properly, or will cause undersirable
@@ -737,7 +715,7 @@ class Contenteditable extends React.Component
     # On Windows, right-clicking a word does not select it at the OS-level.
     # We need to implement this behavior locally for the rest of the logic here.
     if range.collapsed
-      DOMUtils.selectWordContainingRange(range)
+      DOMUtils.Mutating.selectWordContainingRange(range)
       range = selection.getRangeAt(0)
 
     text = range.toString()

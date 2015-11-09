@@ -2,38 +2,116 @@ _ = require 'underscore'
 _s = require 'underscore.string'
 
 DOMUtils =
+  Mutating:
+    replaceFirstListItem: (li, replaceWith) ->
+      list = DOMUtils.closest(li, "ul, ol")
 
-  # Given a bunch of elements, it will go through and find all elements
-  # that are adjacent to that one of the same type. For each set of
-  # adjacent elements, it will put all children of those elements into the
-  # first one and delete the remaining elements.
-  #
-  # WARNING: This mutates the DOM in place!
-  collapseAdjacentElements: (els=[]) ->
-    return if els.length is 0
-    els = Array::slice.call(els)
+      if replaceWith.length is 0
+        replaceWith = replaceWith.replace /\s/g, "&nbsp;"
+        text = document.createElement("div")
+        text.innerHTML = "<br>"
+      else
+        replaceWith = replaceWith.replace /\s/g, "&nbsp;"
+        text = document.createElement("span")
+        text.innerHTML = "#{replaceWith}"
 
-    seenEls = []
-    toMerge = []
+      if list.querySelectorAll('li').length <= 1
+        # Delete the whole list and replace with text
+        list.parentNode.replaceChild(text, list)
+      else
+        # Delete the list item and prepend the text before the rest of the
+        # list
+        li.parentNode.removeChild(li)
+        list.parentNode.insertBefore(text, list)
 
-    for el in els
-      continue if el in seenEls
-      adjacent = DOMUtils.collectAdjacent(el)
-      seenEls = seenEls.concat(adjacent)
-      continue if adjacent.length <= 1
-      toMerge.push(adjacent)
+      child = text.childNodes[0] ? text
+      index = Math.max(replaceWith.length - 1, 0)
+      selection = document.getSelection()
+      selection.setBaseAndExtent(child, index, child, index)
 
-    anchors = []
-    for mergeSet in toMerge
-      anchor = mergeSet[0]
-      remaining = mergeSet[1..-1]
-      for el in remaining
-        while (el.childNodes.length > 0)
-          anchor.appendChild(el.childNodes[0])
-      DOMUtils.removeElements(remaining)
-      anchors.push(anchor)
+    # Given a bunch of elements, it will go through and find all elements
+    # that are adjacent to that one of the same type. For each set of
+    # adjacent elements, it will put all children of those elements into
+    # the first one and delete the remaining elements.
+    collapseAdjacentElements: (els=[]) ->
+      return if els.length is 0
+      els = Array::slice.call(els)
 
-    return anchors
+      seenEls = []
+      toMerge = []
+
+      for el in els
+        continue if el in seenEls
+        adjacent = DOMUtils.collectAdjacent(el)
+        seenEls = seenEls.concat(adjacent)
+        continue if adjacent.length <= 1
+        toMerge.push(adjacent)
+
+      anchors = []
+      for mergeSet in toMerge
+        anchor = mergeSet[0]
+        remaining = mergeSet[1..-1]
+        for el in remaining
+          while (el.childNodes.length > 0)
+            anchor.appendChild(el.childNodes[0])
+        DOMUtils.Mutating.removeElements(remaining)
+        anchors.push(anchor)
+
+      return anchors
+
+    removeElements: (elements=[]) ->
+      for el in elements
+        try
+          if el.parentNode then el.parentNode.removeChild(el)
+        catch
+          # This can happen if we've already removed ourselves from the
+          # node or it no longer exists
+          continue
+      return elements
+
+    # This method finds the bounding points of the word that the range
+    # is currently within and selects that word.
+    selectWordContainingRange: (range) ->
+      selection = document.getSelection()
+      node = selection.focusNode
+      text = node.textContent
+      wordStart = _s.reverse(text.substring(0, selection.focusOffset)).search(/\s/)
+      if wordStart is -1
+        wordStart = 0
+      else
+        wordStart = selection.focusOffset - wordStart
+      wordEnd = text.substring(selection.focusOffset).search(/\s/)
+      if wordEnd is -1
+        wordEnd = text.length
+      else
+        wordEnd += selection.focusOffset
+
+      selection.removeAllRanges()
+      range = new Range()
+      range.setStart(node, wordStart)
+      range.setEnd(node, wordEnd)
+      selection.addRange(range)
+
+  atStartOfList: ->
+    selection = document.getSelection()
+    anchor = selection.anchorNode
+    return false if not selection.isCollapsed
+    return true if anchor?.nodeName is "LI"
+    return false if selection.anchorOffset > 0
+    li = DOMUtils.closest(anchor, "li")
+    return unless li
+    return DOMUtils.isFirstChild(li, anchor)
+
+  # https://developer.mozilla.org/en-US/docs/Web/API/Element/closest
+  # Only Elements (not Text nodes) have the `closest` method
+  closest: (node, selector) ->
+    el = if node instanceof HTMLElement then node else node.parentElement
+    return el.closest(selector)
+
+  closestAtCursor: (selector) ->
+    selection = document.getSelection()
+    return unless selection?.isCollapsed
+    return DOMUtils.closest(selection.anchorNode, selector)
 
   # Returns an array of all immediately adjacent nodes of a particular
   # nodeName relative to the root. Includes the root if it has the correct
@@ -218,16 +296,6 @@ DOMUtils =
       "'": '&#039;'
     text.replace /[&<>"']/g, (m) -> map[m]
 
-  removeElements: (elements=[]) ->
-    for el in elements
-      try
-        if el.parentNode then el.parentNode.removeChild(el)
-      catch
-        # This can happen if we've already removed ourselves from the node
-        # or it no longer exists
-        continue
-    return elements
-
   # Checks to see if a particular node is visible and any of its parents
   # are visible.
   #
@@ -300,29 +368,6 @@ DOMUtils =
     return false unless root.childNodes[0]
     return true if root.childNodes[0] is node
     return DOMUtils.isFirstChild(root.childNodes[0], node)
-
-  # This method finds the bounding points of the word that the range
-  # is currently within and selects that word.
-  selectWordContainingRange: (range) ->
-    selection = document.getSelection()
-    node = selection.focusNode
-    text = node.textContent
-    wordStart = _s.reverse(text.substring(0, selection.focusOffset)).search(/\s/)
-    if wordStart is -1
-      wordStart = 0
-    else
-      wordStart = selection.focusOffset - wordStart
-    wordEnd = text.substring(selection.focusOffset).search(/\s/)
-    if wordEnd is -1
-      wordEnd = text.length
-    else
-      wordEnd += selection.focusOffset
-
-    selection.removeAllRanges()
-    range = new Range()
-    range.setStart(node, wordStart)
-    range.setEnd(node, wordEnd)
-    selection.addRange(range)
 
   commonAncestor: (nodes=[]) ->
     nodes = Array::slice.call(nodes)
