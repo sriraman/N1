@@ -260,15 +260,24 @@ class Contenteditable extends React.Component
 
   _onBackspaceDown: (event) ->
     if document.getSelection()?.isCollapsed
+
+      # Due to a bug in Chrome's contenteditable implementation, the
+      # standard document.execCommand('outdent') doesn't work for the
+      # first item in lists. As a result, we need to detect if we're
+      # trying to outdent the first item in a list.
       if @_atStartOfList()
         li = @_closestAtCursor("li")
         list = @_closestAtCursor("ul, ol")
         return unless li and list
         event.preventDefault()
         if list.querySelectorAll('li')?[0] is li # We're in first li
+          hasContent = (li.textContent ? "").trim().length > 0
           if @_justCreatedList
             @_resetListToText = true
             @_replaceFirstListItem(li, @_justCreatedList)
+          else if hasContent
+            @_resetListToText = true
+            @_replaceFirstListItem(li, li.innerHTML)
           else
             @_replaceFirstListItem(li, "")
         else
