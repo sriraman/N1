@@ -107,30 +107,31 @@ module.exports = (grunt) ->
 
       callback(null, error)
 
-  grunt.registerTask 'run-specs', 'Run the specs', ->
+  grunt.registerTask 'run-spectron-specs', 'Run spectron specs', ->
+    proc = require 'child_process'
     done = @async()
-    startTime = Date.now()
+    testSucceeded = false
+    testOutput = ""
+    testProc = proc.spawn("./node_modules/jasmine/bin/jasmine.js", ["JASMINE_CONFIG_PATH=spec/spectron/config.json"])
 
-    # TODO: This should really be parallel on both platforms, however our
-    # fixtures step on each others toes currently.
-    if process.platform in ['darwin', 'linux']
-      method = async.parallel
-    else if process.platform is 'win32'
-      method = async.series
+    testProc.stdout.on 'data', (data) ->
+      str = data.toString()
+      testOutput += str
+      console.log(str)
+      if str.indexOf(' 0 failures') isnt -1
+        testSucceeded = true
 
-    method [runCoreSpecs, runPackageSpecs], (error, results) ->
-      [coreSpecFailed, failedPackages] = results
-      elapsedTime = Math.round((Date.now() - startTime) / 100) / 10
-      grunt.log.ok("Total spec time: #{elapsedTime}s using #{concurrency} cores")
-      failures = failedPackages
-      failures.push "atom core" if coreSpecFailed
+    testProc.stderr.on 'data', (data) ->
+      str = data.toString()
+      testOutput += str
+      grunt.log.error(str)
 
-      grunt.log.error("[Error]".red + " #{failures.join(', ')} spec(s) failed") if failures.length > 0
+    testProc.on 'error', (err) ->
+      grunt.log.error("Process error: #{err}")
 
-      if process.platform is 'win32' and process.env.JANKY_SHA1
+    testProc.on 'close', (exitCode, signal) ->
+      if testSucceeded
         done()
-      else
-        done(!coreSpecFailed and failedPackages.length == 0)
 
   grunt.registerTask 'run-edgehill-specs', 'Run the specs', ->
     proc = require 'child_process'
