@@ -42,30 +42,30 @@ class Contenteditable extends React.Component
     onScrollTo: React.PropTypes.func
     onScrollToBottom: React.PropTypes.func
 
+    # A list of objects that extend {ContenteditablePlugin}
+    plugins: React.PropTypes.array
+
     # A series of callbacks that can get executed at various points along
     # the contenteditable.
-    lifecycleCallbacks: React.PropTypes.object
+    # lifecycleCallbacks: React.PropTypes.object
 
     spellcheck: React.PropTypes.bool
 
     floatingToolbar: React.PropTypes.bool
 
   @defaultProps:
+    plugins: []
     spellcheck: true
     floatingToolbar: true
-    lifecycleCallbacks:
-      componentDidUpdate: (editableNode) ->
-      onInput: (editableNode, event) ->
-      onTabDown: (editableNode, event, range) ->
-      onLearnSpelling: (editableNode, text) ->
-      onSubstitutionPerformed: (editableNode) ->
-      onMouseUp: (editableNode, event, range) ->
+    # lifecycleCallbacks:
+    #   componentDidUpdate: (editableNode) ->
+    #   onInput: (editableNode, event) ->
+    #   onTabDown: (editableNode, event, range) ->
+    #   onLearnSpelling: (editableNode, text) ->
+    #   onSubstitutionPerformed: (editableNode) ->
+    #   onMouseUp: (editableNode, event, range) ->
 
   corePlugins: [AutomaticListManager]
-
-  coreLifecycleCallbacks:
-    onInput: [AutomaticListCreator]
-    onInputAfter: [DOMNormalizer, SelectionNormalizer]
 
   # We allow extensions to read, and mutate the:
   #
@@ -75,13 +75,13 @@ class Contenteditable extends React.Component
   #
   # We treat mutations as a single atomic change (even if multiple actual
   # mutations happened).
-  atomicEdit: (editingFunction, extraArgs=[]) ->
+  atomicEdit: (editingFunction, event) ->
     @_teardownSelectionListeners()
     innerStateProxy =
       get: => return @innerState
       set: (newInnerState) => @setInnerState(newInnerState)
-    args = [@_editableNode(), document.getSelection(), innerStateProxy]
-    editingFunction.apply(null, args.concat(extraArgs))
+    args = [event, @_editableNode(), document.getSelection(), innerStateProxy]
+    editingFunction.apply(null, args)
     @_setupSelectionListeners()
 
   constructor: (@props) ->
@@ -128,7 +128,7 @@ class Contenteditable extends React.Component
 
     editableNode = @_editableNode()
 
-    @props.lifecycleCallbacks.componentDidUpdate(editableNode)
+    # @props.lifecycleCallbacks.componentDidUpdate(editableNode)
 
     @setInnerState
       links: editableNode.querySelectorAll("*[href]")
@@ -215,11 +215,16 @@ class Contenteditable extends React.Component
     @_setupSelectionListeners()
     @_onInput()
 
+  _runCallbackOnPlugins: (method, event) ->
+    for plugin in (@corePlugins.concat(@props.plugins))
+      callback = plugin[method] ? ->
+      @atomicEdit(callback, event)
+
   _onKeyDown: (event) =>
+    @_runCallbackOnPlugins("onKeyDown", event)
+
     if event.key is "Tab"
       @_onTabDown(event)
-    if event.key is "Backspace"
-      @_onBackspaceDown(event)
     U = 85
     if event.which is U and (event.metaKey or event.ctrlKey)
       event.preventDefault()
@@ -239,11 +244,15 @@ class Contenteditable extends React.Component
     @_ignoreInputChanges = true
     @_resetInnerStateOnInput()
 
-    @_runLifecycleCallbacks([
-      @coreLifecycleCallbacks.onInput
-      @props.lifecycleCallbacks.onInput
-      @coreLifecycleCallbacks.onInputAfter
-    ], event)
+    @_runCallbackOnPlugins("onInput", event)
+
+    # @_runLifecycleCallbacks([
+    #   @coreLifecycleCallbacks.onInput
+    #   @props.lifecycleCallbacks.onInput
+    #   @coreLifecycleCallbacks.onInputAfter
+    # ], event)
+
+    @_normalize()
 
     @_saveSelectionState()
 
@@ -252,9 +261,9 @@ class Contenteditable extends React.Component
     @_ignoreInputChanges = false
     return
 
-  _runLifecycleCallbacks: (callbacks=[], extraArgs...) =>
-    callbacks = _.flatten callbacks
-    @atomicEdit(callback, extraArgs) for callback in callbacks
+  # _runLifecycleCallbacks: (callbacks=[], extraArgs...) =>
+  #   callbacks = _.flatten callbacks
+  #   @atomicEdit(callback, extraArgs) for callback in callbacks
 
   _resetInnerStateOnInput: ->
     @_autoCreatedListFromText = false
@@ -263,35 +272,6 @@ class Contenteditable extends React.Component
 
   _notifyParentOfChange: ->
     @props.onChange(target: {value: @_editableNode().innerHTML})
-
-  # We need to detect if the first 
-  _onBackspaceDown: (event) ->
-    if document.getSelection()?.isCollapsed
-
-      # Due to a bug in Chrome's contenteditable implementation, the
-      # standard document.execCommand('outdent') doesn't work for the
-      # first item in lists. As a result, we need to detect if we're
-      # trying to outdent the first item in a list.
-      if DOMUtils.atStartOfList()
-        li = DOMUtils.closestAtCursor("li")
-        list = DOMUtils.closestAtCursor("ul, ol")
-        return unless li and list
-        event.preventDefault()
-        if list.querySelectorAll('li')?[0] is li # We're in first li
-          hasContent = (li.textContent ? "").trim().length > 0
-          if @_autoCreatedListFromText
-            @_ignoreAutomaticListCreation = true
-            @_replaceFirstListItem(li, @_autoCreatedListFromText)
-          else if hasContent
-            @_ignoreAutomaticListCreation = true
-            @_replaceFirstListItem(li, li.innerHTML)
-          else
-            @_replaceFirstListItem(li, "")
-        else
-          document.execCommand("outdent")
-
-  # The native document.execCommand('outdent')
-  _outdent: ->
 
   _replaceFirstListItem: (li, replaceWith) ->
     @_teardownSelectionListeners()
@@ -327,7 +307,7 @@ class Contenteditable extends React.Component
     editableNode = @_editableNode()
     range = DOMUtils.getRangeInScope(editableNode)
 
-    @props.lifecycleCallbacks.onTabDown(editableNode, event, range)
+    # @props.lifecycleCallbacks.onTabDown(editableNode, event, range)
 
     return if event.defaultPrevented
     @_onTabDownDefaultBehavior(event)
@@ -732,7 +712,7 @@ class Contenteditable extends React.Component
       range.selectNode(node)
       selection.removeAllRanges()
       selection.addRange(range)
-      @props.lifecycleCallbacks.onSubstitutionPerformed(@_editableNode())
+      # @props.lifecycleCallbacks.onSubstitutionPerformed(@_editableNode())
 
     cut = =>
       clipboard.writeText(text)
@@ -751,7 +731,7 @@ class Contenteditable extends React.Component
       spellchecker = require('spellchecker')
       learnSpelling = =>
         spellchecker.add(text)
-        @props.lifecycleCallbacks.onLearnSpelling(@_editableNode(), text)
+        # @props.lifecycleCallbacks.onLearnSpelling(@_editableNode(), text)
       if spellchecker.isMisspelled(text)
         corrections = spellchecker.getCorrectionsForMisspelling(text)
         if corrections.length > 0
@@ -809,7 +789,7 @@ class Contenteditable extends React.Component
 
     range = DOMUtils.getRangeInScope(editableNode)
 
-    @props.lifecycleCallbacks.onMouseUp(editableNode, event, range)
+    # @props.lifecycleCallbacks.onMouseUp(editableNode, event, range)
 
     return event
 

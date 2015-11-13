@@ -1,48 +1,55 @@
+{DOMUtils} = require 'nylas-exports'
 ContenteditablePlugin = require './contenteditable-plugin'
 
 class AutomaticListManager extends ContenteditablePlugin
-  @onInput: (event, editableNode, selection, innerStateProxy) ->
+  @onInput: (event, editableNode, selection) ->
     return unless selection?.anchorNode
-    return if selection.isCollapsed
+    return if not selection.isCollapsed
 
-    if innerStateProxy.get("ignoreAutomaticListCreation")
-      innerStateProxy.set(ignoreAutomaticListCreation: false)
+    if @ignoreAutomaticListCreation
+      @ignoreAutomaticListCreation = false
       return
+    # if innerStateProxy.get("ignoreAutomaticListCreation")
+    #   innerStateProxy.set(ignoreAutomaticListCreation: false)
+    #   return
 
     text = selection.anchorNode.textContent
     if (/^\d\.\s$/).test text
-      innerStateProxy.set autoCreatedListFromText: text
+      @originalInput = text
       document.execCommand("insertOrderedList")
     else if (/^[*-]\s$/).test text
-      innerStateProxy.set autoCreatedListFromText: text
+      @originalInput = text
       document.execCommand("insertUnorderedList")
       selection.anchorNode.parentElement.innerHTML = ""
 
-  @onKeyDown: (event, editableNode, selection, innerStateProxy) ->
+  @onKeyDown: (event, editableNode, selection) ->
     return unless event.key is "Backspace"
 
-    # Due to a bug in Chrome's contenteditable implementation, the
-    # standard document.execCommand('outdent') doesn't work for the
-    # first item in lists. As a result, we need to detect if we're
-    # trying to outdent the first item in a list.
     if DOMUtils.atStartOfList()
       li = DOMUtils.closestAtCursor("li")
       list = DOMUtils.closestAtCursor("ul, ol")
       return unless li and list
       event.preventDefault()
-      if list.querySelectorAll('li')?[0] is li # We're in first li
-        hasContent = (li.textContent ? "").trim().length > 0
-        if innerStateProxy.get("autoCreatedListFromText")
-          innerStateProxy.set ignoreAutomaticListCreation: true
-          originalText = innerStateProxy.get("autoCreatedListFromText")
-          DOMUtils.Mutating.replaceFirstListItem(li, originalText)
-        else if hasContent
-          innerStateProxy.set ignoreAutomaticListCreation: true
-          DOMUtils.Mutating.replaceFirstListItem(li, li.innerHTML)
-        else
-          DOMUtils.Mutating.replaceFirstListItem(li, "")
+
+      if @originalInput
+        # DOMUtils.Mutating.replaceFirstListItem(li, originalText)
+        document.execCommand("outdent")
+        document.execCommand("insertHTML", @originalInput)
+        @originalInput = null
       else
         document.execCommand("outdent")
 
+      # if list.querySelectorAll('li')?[0] is li # We're in first li
+      #   hasContent = (li.textContent ? "").trim().length > 0
+      #   if innerStateProxy.get("autoCreatedListFromText")
+      #     innerStateProxy.set ignoreAutomaticListCreation: true
+      #     originalText = innerStateProxy.get("autoCreatedListFromText")
+      #     DOMUtils.Mutating.replaceFirstListItem(li, originalText)
+      #   else if hasContent
+      #     innerStateProxy.set ignoreAutomaticListCreation: true
+      #     DOMUtils.Mutating.replaceFirstListItem(li, li.innerHTML)
+      #   else
+      #     DOMUtils.Mutating.replaceFirstListItem(li, "")
+      # else
 
 module.exports = AutomaticListManager
