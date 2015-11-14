@@ -218,6 +218,7 @@ class Contenteditable extends React.Component
   _runCallbackOnPlugins: (method, event) ->
     for plugin in (@corePlugins.concat(@props.plugins))
       callback = plugin[method] ? ->
+      callback = callback.bind(plugin)
       @atomicEdit(callback, event)
 
   _onKeyDown: (event) =>

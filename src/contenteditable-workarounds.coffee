@@ -17,6 +17,7 @@ For more reading on Contenteditable and its issues see:
 class Workarounds
 
   @patch: ->
+    return
     @origExecCommand ?= document.execCommand
     @patchOutdent()
 

@@ -92,6 +92,12 @@ DOMUtils =
       range.setEnd(node, wordEnd)
       selection.addRange(range)
 
+    moveSelectionToEnd: (selection) ->
+      return unless selection.isCollapsed
+      node = DOMUtils.findLastTextNode(selection.anchorNode)
+      index = node.length
+      selection.setBaseAndExtent(node, index, node, index)
+
   atStartOfList: ->
     selection = document.getSelection()
     anchor = selection.anchorNode
@@ -269,6 +275,28 @@ DOMUtils =
         return childNode
       else continue
     return lastNode
+
+  findLastTextNode: (node) ->
+    return null unless node
+    return node if node.nodeType is Node.TEXT_NODE
+    for childNode in node.childNodes by -1
+      if childNode.nodeType is Node.TEXT_NODE
+        return childNode
+      else if childNode.nodeType is Node.ELEMENT_NODE
+        return DOMUtils.findLastTextNode(childNode)
+      else continue
+    return null
+
+  findFirstTextNode: (node) ->
+    return null unless node
+    return node if node.nodeType is Node.TEXT_NODE
+    for childNode in node.childNodes
+      if childNode.nodeType is Node.TEXT_NODE
+        return childNode
+      else if childNode.nodeType is Node.ELEMENT_NODE
+        return DOMUtils.findFirstTextNode(childNode)
+      else continue
+    return null
 
   isBlankTextNode: (node) ->
     return if not node?.data
