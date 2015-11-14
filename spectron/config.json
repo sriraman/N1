@@ -1,5 +1,5 @@
 {
-  "spec_dir": "spec/spectron",
+  "spec_dir": ".",
   "spec_files": [
     "**/*-spec.{js,es6,es,jsx}"
   ],

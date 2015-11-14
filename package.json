@@ -75,10 +75,8 @@
     "nock": "^2",
     "grunt": "^0.4.5",
     "grunt-serve": "^0.1.6",
-    "jasmine": "^2.3.2",
     "jasmine-react-helpers": "^0.2",
-    "proxyquire": "git+https://github.com/bengotow/proxyquire",
-    "spectron": "^0.33"
+    "proxyquire": "git+https://github.com/bengotow/proxyquire"
   },
   "packageDependencies": {},
   "private": true,
