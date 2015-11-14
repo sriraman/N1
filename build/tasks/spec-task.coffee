@@ -3,7 +3,7 @@ path = require 'path'
 request = require 'request'
 proc = require 'child_process'
 
-executeTests = (test, grunt, done)->
+executeTests = (test, grunt, done) ->
   testSucceeded = false
   testOutput = ""
   testProc = proc.spawn(test.cmd, test.args)
