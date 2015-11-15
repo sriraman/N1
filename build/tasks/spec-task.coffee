@@ -40,12 +40,13 @@ executeTests = (test, grunt, done) ->
 module.exports = (grunt) ->
 
   grunt.registerTask 'run-spectron-specs', 'Run spectron specs', ->
-    appPath = grunt.option('appDir') + '/N1.sh'
+    appPath = path.resolve('./N1.sh')
     done = @async()
     npmPath = path.resolve "./build/node_modules/.bin/npm"
+    grunt.log.writeln 'App exists: ' + fs.existsSync(appPath)
+
     process.chdir('./spectron')
     grunt.log.writeln "Current dir: #{process.cwd()}"
-    grunt.log.writeln 'App exists: ' + fs.existsSync('/Applications/Nylas N1.app/Contents/MacOS/Nylas')
     installProc = proc.exec 'npm install', (error) ->
       if error?
         process.chdir('..')
