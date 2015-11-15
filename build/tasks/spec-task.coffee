@@ -39,6 +39,7 @@ executeTests = (test, grunt, done) ->
 module.exports = (grunt) ->
 
   grunt.registerTask 'run-spectron-specs', 'Run spectron specs', ->
+    appPath = grunt.option('appDir') + '/N1.sh'
     done = @async()
     npmPath = path.resolve "./build/node_modules/.bin/npm"
     process.chdir('./spectron')
@@ -48,7 +49,7 @@ module.exports = (grunt) ->
         grunt.log.error(error)
         done(false)
       else
-        executeTests cmd: 'npm', args: ['test'], grunt, ->
+        executeTests cmd: 'npm', args: ['test', "APP_PATH=#{appPath}"], grunt, ->
           process.chdir('..')
           done()
 

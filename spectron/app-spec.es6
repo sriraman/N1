@@ -3,7 +3,7 @@ import {Application} from 'spectron';
 describe('Nylas', ()=> {
   beforeEach((done)=>{
     this.app = new Application({
-      path: '/Applications/Nylas N1.app/Contents/MacOS/Nylas',
+      path: jasmine.APP_PATH,
     });
     this.app.start().then(done);
   });

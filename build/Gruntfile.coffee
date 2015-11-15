@@ -104,6 +104,7 @@ module.exports = (grunt) ->
     installDir ?= process.env.INSTALL_PREFIX ? '/usr/local'
     killCommand = 'pkill -9 nylas'
 
+  grunt.option('appDir', appDir)
   installDir = path.resolve(installDir)
 
   cjsxConfig =
