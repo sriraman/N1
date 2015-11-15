@@ -23,18 +23,19 @@ executeTests = (test, grunt, done) ->
     grunt.log.error("Process error: #{err}")
 
   testProc.on 'close', (exitCode, signal) ->
-    if testSucceeded
+    if testSucceeded and exitCode is 0
       done()
     else
-      testOutput = testOutput.replace(/\x1b\[[^m]+m/g, '')
-      url = "https://hooks.slack.com/services/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"
-      request.post
-        url: url
-        json:
-          username: "Edgehill Builds"
-          text: "Aghhh somebody broke the build. ```#{testOutput}```"
-      , (err, httpResponse, body) ->
-        done(false)
+      done(false)
+      # testOutput = testOutput.replace(/\x1b\[[^m]+m/g, '')
+      # url = "https://hooks.slack.com/services/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"
+      # request.post
+      #   url: url
+      #   json:
+      #     username: "Edgehill Builds"
+      #     text: "Aghhh somebody broke the build. ```#{testOutput}```"
+      # , (err, httpResponse, body) ->
+      #   done(false)
 
 module.exports = (grunt) ->
 
@@ -43,15 +44,18 @@ module.exports = (grunt) ->
     done = @async()
     npmPath = path.resolve "./build/node_modules/.bin/npm"
     process.chdir('./spectron')
+    grunt.log.writeln "Current dir: #{process.cwd()}"
+    grunt.log.writeln 'App exists: ' + fs.existsSync('/Applications/Nylas N1.app/Contents/MacOS/Nylas')
     installProc = proc.exec 'npm install', (error) ->
       if error?
         process.chdir('..')
-        grunt.log.error(error)
+        grunt.log.error('Failed while running npm install in spectron folder')
+        grunt.fail.warn(error)
         done(false)
       else
-        executeTests cmd: 'npm', args: ['test', "APP_PATH=#{appPath}"], grunt, ->
+        executeTests cmd: 'npm', args: ['test', "APP_PATH=#{appPath}"], grunt, (succeeded) ->
           process.chdir('..')
-          done()
+          done(succeeded)
 
 
   grunt.registerTask 'run-edgehill-specs', 'Run the specs', ->
