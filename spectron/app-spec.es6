@@ -16,7 +16,7 @@ describe('Nylas', ()=> {
 
   it('shows an initial window', ()=> {
     this.app.client.getWindowCount().then((count)=> {
-      expect(count).toEqual(2);
+      expect(count).toEqual(1);
     });
   });
 });

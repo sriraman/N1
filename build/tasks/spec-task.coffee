@@ -47,14 +47,14 @@ module.exports = (grunt) ->
 
     process.chdir('./spectron')
     grunt.log.writeln "Current dir: #{process.cwd()}"
-    installProc = proc.exec 'npm install', (error) ->
+    installProc = proc.exec "#{npmPath} install", (error) ->
       if error?
         process.chdir('..')
         grunt.log.error('Failed while running npm install in spectron folder')
         grunt.fail.warn(error)
         done(false)
       else
-        executeTests cmd: 'npm', args: ['test', "APP_PATH=#{appPath}"], grunt, (succeeded) ->
+        executeTests cmd: npmPath, args: ['test', "APP_PATH=#{appPath}"], grunt, (succeeded) ->
           process.chdir('..')
           done(succeeded)
 
