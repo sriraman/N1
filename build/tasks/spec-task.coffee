@@ -26,16 +26,15 @@ executeTests = (test, grunt, done) ->
     if testSucceeded and exitCode is 0
       done()
     else
-      done(false)
-      # testOutput = testOutput.replace(/\x1b\[[^m]+m/g, '')
-      # url = "https://hooks.slack.com/services/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"
-      # request.post
-      #   url: url
-      #   json:
-      #     username: "Edgehill Builds"
-      #     text: "Aghhh somebody broke the build. ```#{testOutput}```"
-      # , (err, httpResponse, body) ->
-      #   done(false)
+      testOutput = testOutput.replace(/\x1b\[[^m]+m/g, '')
+      url = "https://hooks.slack.com/services/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"
+      request.post
+        url: url
+        json:
+          username: "Edgehill Builds"
+          text: "Aghhh somebody broke the build. ```#{testOutput}```"
+      , (err, httpResponse, body) ->
+        done(false)
 
 module.exports = (grunt) ->
 
