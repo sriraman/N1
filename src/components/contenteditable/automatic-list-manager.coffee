@@ -3,30 +3,35 @@ _str = require 'underscore.string'
 ContenteditablePlugin = require './contenteditable-plugin'
 
 class AutomaticListManager extends ContenteditablePlugin
-  @onKeyDown: (event, editableNode, selection) ->
-    if event.key is "Backspace" and DOMUtils.atStartOfList()
-      @outdentListItem(selection)
-    else if event.key is " " and @hasListStartSignature(editableNode, selection)
+  @onInput: (event, editableNode, selection) ->
+    if @_spaceEntered and @hasListStartSignature(selection)
       @createList(event, selection)
 
-  @bulletRegex: -> /^[*-]/
+  @onKeyDown: (event, editableNode, selection) ->
+    @_spaceEntered = event.key is " "
+    if event.key is "Backspace" and DOMUtils.atStartOfList()
+      @outdentListItem(selection)
+    else
+      @originalInput = null
 
-  @numberedRegex: -> /^\d\./
+  @bulletRegex: -> /^[*-]\s/
 
-  @hasListStartSignature: (editableNode, selection) ->
+  @numberRegex: -> /^\d\.\s/
+
+  @hasListStartSignature: (selection) ->
     return false unless selection?.anchorNode
     return false if not selection.isCollapsed
 
     text = selection.anchorNode.textContent
-    return @numberedRegex().test(text) or @bulletRegex().test(text)
+    return @numberRegex().test(text) or @bulletRegex().test(text)
 
   @createList: (event, selection) ->
     @saveOriginalInput(selection)
     text = selection.anchorNode?.textContent
 
-    if @numberedRegex().test(text)
+    if @numberRegex().test(text)
       document.execCommand("insertOrderedList")
-      @removeListStarter(@numberedRegex(), selection)
+      @removeListStarter(@numberRegex(), selection)
     else if @bulletRegex().test(text)
       document.execCommand("insertUnorderedList")
       @removeListStarter(@bulletRegex(), selection)
@@ -48,14 +53,7 @@ class AutomaticListManager extends ContenteditablePlugin
     return unless node
     if node.nodeType is Node.ELEMENT_NODE
       node = DOMUtils.findFirstTextNode(node)
-
-    if (index = node.textContent.search(@numberedRegex())) > -1
-      index += 2 # digit plus dot
-    else if (index = node.textContent.search(@bulletRegex())) > -1
-      index += 1 # dash or star
-
-    if index > -1
-      @originalInput = _str.splice(node.textContent, index, 0, " ")
+    @originalInput = node.textContent
 
   # From a newly-created list
   # Outdent returns to a <div><br/></div> structure
@@ -76,8 +74,10 @@ class AutomaticListManager extends ContenteditablePlugin
       else
         textNode.textContent = @originalInput
 
-    # if @numberedRegex().test(@originalInput) or @bulletRegex().test(@originalInput)
-      # DOMUtils.Mutating.moveSelectionToEnd(selection)
+    if @numberRegex().test(@originalInput)
+      DOMUtils.Mutating.moveSelectionToIndexInAnchorNode(selection, 3) # digit plus dot
+    if @bulletRegex().test(@originalInput)
+      DOMUtils.Mutating.moveSelectionToIndexInAnchorNode(selection, 2) # dash or star
 
     @originalInput = null
 

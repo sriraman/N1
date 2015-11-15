@@ -92,6 +92,11 @@ DOMUtils =
       range.setEnd(node, wordEnd)
       selection.addRange(range)
 
+    moveSelectionToIndexInAnchorNode: (selection, index) ->
+      return unless selection.isCollapsed
+      node = selection.anchorNode
+      selection.setBaseAndExtent(node, index, node, index)
+
     moveSelectionToEnd: (selection) ->
       return unless selection.isCollapsed
       node = DOMUtils.findLastTextNode(selection.anchorNode)
