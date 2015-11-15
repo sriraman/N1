@@ -40,11 +40,17 @@ module.exports = (grunt) ->
 
   grunt.registerTask 'run-spectron-specs', 'Run spectron specs', ->
     done = @async()
+    npmPath = path.resolve "./build/node_modules/.bin/npm"
     process.chdir('./spectron')
-    npmPath = path.resolve "../build/node_modules/.bin/npm"
-    installProc = proc.execSync('npm install')
-    executeTests cmd: 'npm', args: ['test'], grunt, done
-    process.chdir('..')
+    installProc = proc.exec 'npm install', (error)->
+      if error?
+        process.chdir('..')
+        grunt.log.error(error)
+        done(false)
+      else
+        executeTests cmd: 'npm', args: ['test'], grunt, ()->
+          process.chdir('..')
+          done()
 
 
   grunt.registerTask 'run-edgehill-specs', 'Run the specs', ->
