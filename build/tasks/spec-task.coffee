@@ -42,13 +42,13 @@ module.exports = (grunt) ->
     done = @async()
     npmPath = path.resolve "./build/node_modules/.bin/npm"
     process.chdir('./spectron')
-    installProc = proc.exec 'npm install', (error)->
+    installProc = proc.exec 'npm install', (error) ->
       if error?
         process.chdir('..')
         grunt.log.error(error)
         done(false)
       else
-        executeTests cmd: 'npm', args: ['test'], grunt, ()->
+        executeTests cmd: 'npm', args: ['test'], grunt, ->
           process.chdir('..')
           done()
 
