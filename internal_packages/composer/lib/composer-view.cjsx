@@ -223,7 +223,10 @@ class ComposerView extends React.Component
 
       {@_renderSubject()}
 
-      <div className="compose-body" ref="composeBody" onClick={@_onClickComposeBody}>
+      <div className="compose-body"
+           ref="composeBody"
+           onMouseUp={@_onMouseUpComposerBody}
+           onMouseDown={@_onMouseDownComposerBody}>
         {@_renderBody()}
         {@_renderFooterRegions()}
       </div>
@@ -472,8 +475,23 @@ class ComposerView extends React.Component
   # This lets us click outside of the `contenteditable`'s `contentBody`
   # and simulate what happens when you click beneath the text *in* the
   # contentEditable.
-  _onClickComposeBody: (event) =>
-    @refs[Fields.Body].selectEnd()
+  #
+  # Unfortunately, we need to manually keep track of the "click" in
+  # separate mouseDown, mouseUp events because we need to ensure that the
+  # start and end target are both not in the contenteditable. This ensures
+  # that this behavior doesn't interfear with a click and drag selection.
+  _onMouseDownComposerBody: (event) =>
+    if React.findDOMNode(@refs[Fields.Body]).contains(event.target)
+      @_mouseDownTarget = null
+    else @_mouseDownTarget = event.target
+
+  _onMouseUpComposerBody: (event) =>
+    if event.target is @_mouseDownTarget
+      @refs[Fields.Body].selectEnd()
+    @_mouseDownTarget = null
+
+  _onMouseMoveComposeBody: (event) =>
+    if @_mouseComposeBody is "down" then @_mouseComposeBody = "move"
 
   _onDraftChanged: =>
     return if @_ignoreNextTrigger
