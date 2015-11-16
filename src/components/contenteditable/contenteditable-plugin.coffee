@@ -19,8 +19,6 @@ class ContenteditablePlugin
 
   @onFocus: (event, editableNode, selection, innerStateProxy) ->
 
-  @onPaste: (event, editableNode, selection, innerStateProxy) ->
-
   @onClick: (event, editableNode, selection, innerStateProxy) ->
 
   @onKeyDown: (event, editableNode, selection, innerStateProxy) ->

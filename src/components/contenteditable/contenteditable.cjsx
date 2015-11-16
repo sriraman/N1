@@ -45,10 +45,6 @@ class Contenteditable extends React.Component
     # A list of objects that extend {ContenteditablePlugin}
     plugins: React.PropTypes.array
 
-    # A series of callbacks that can get executed at various points along
-    # the contenteditable.
-    # lifecycleCallbacks: React.PropTypes.object
-
     spellcheck: React.PropTypes.bool
 
     floatingToolbar: React.PropTypes.bool
@@ -57,13 +53,6 @@ class Contenteditable extends React.Component
     plugins: []
     spellcheck: true
     floatingToolbar: true
-    # lifecycleCallbacks:
-    #   componentDidUpdate: (editableNode) ->
-    #   onInput: (editableNode, event) ->
-    #   onTabDown: (editableNode, event, range) ->
-    #   onLearnSpelling: (editableNode, text) ->
-    #   onSubstitutionPerformed: (editableNode) ->
-    #   onMouseUp: (editableNode, event, range) ->
 
   corePlugins: [AutomaticListManager]
 
@@ -72,15 +61,16 @@ class Contenteditable extends React.Component
   # 1. DOM of the contenteditable
   # 2. The Selection
   # 3. The innerState of the component
+  # 4. The context menu (onShowContextMenu)
   #
   # We treat mutations as a single atomic change (even if multiple actual
   # mutations happened).
-  atomicEdit: (editingFunction, event) ->
+  atomicEdit: (editingFunction, event, extraArgs...) ->
     @_teardownSelectionListeners()
     innerStateProxy =
       get: => return @innerState
       set: (newInnerState) => @setInnerState(newInnerState)
-    args = [event, @_editableNode(), document.getSelection(), innerStateProxy]
+    args = [event, @_editableNode(), document.getSelection(), innerStateProxy, extraArgs...]
     editingFunction.apply(null, args)
     @_setupSelectionListeners()
 
@@ -97,7 +87,7 @@ class Contenteditable extends React.Component
     @refs["toolbarController"]?.componentWillReceiveInnerProps(innerState)
 
   componentDidMount: =>
-    @_editableNode().addEventListener('contextmenu', @_onShowContextualMenu)
+    @_editableNode().addEventListener('contextmenu', @_onShowContextMenu)
     @_setupSelectionListeners()
     @_setupGlobalMouseListener()
     @_cleanHTML()
@@ -112,7 +102,7 @@ class Contenteditable extends React.Component
      not Utils.isEqualReact(nextState, @state))
 
   componentWillUnmount: =>
-    @_editableNode().removeEventListener('contextmenu', @_onShowContextualMenu)
+    @_editableNode().removeEventListener('contextmenu', @_onShowContextMenu)
     @_teardownSelectionListeners()
     @_teardownGlobalMouseListener()
 
@@ -123,13 +113,9 @@ class Contenteditable extends React.Component
 
   componentDidUpdate: =>
     @_cleanHTML()
-
     @_restoreSelection()
 
     editableNode = @_editableNode()
-
-    # @props.lifecycleCallbacks.componentDidUpdate(editableNode)
-
     @setInnerState
       links: editableNode.querySelectorAll("*[href]")
       editableNode: editableNode
@@ -215,11 +201,11 @@ class Contenteditable extends React.Component
     @_setupSelectionListeners()
     @_onInput()
 
-  _runCallbackOnPlugins: (method, event) ->
+  _runCallbackOnPlugins: (method, event, args...) =>
     for plugin in (@corePlugins.concat(@props.plugins))
       callback = plugin[method] ? ->
       callback = callback.bind(plugin)
-      @atomicEdit(callback, event)
+      @atomicEdit(callback, event, args...)
 
   _onKeyDown: (event) =>
     @_runCallbackOnPlugins("onKeyDown", event)
@@ -247,12 +233,6 @@ class Contenteditable extends React.Component
 
     @_runCallbackOnPlugins("onInput", event)
 
-    # @_runLifecycleCallbacks([
-    #   @coreLifecycleCallbacks.onInput
-    #   @props.lifecycleCallbacks.onInput
-    #   @coreLifecycleCallbacks.onInputAfter
-    # ], event)
-
     @_normalize()
 
     @_saveSelectionState()
@@ -261,10 +241,6 @@ class Contenteditable extends React.Component
 
     @_ignoreInputChanges = false
     return
-
-  # _runLifecycleCallbacks: (callbacks=[], extraArgs...) =>
-  #   callbacks = _.flatten callbacks
-  #   @atomicEdit(callback, extraArgs) for callback in callbacks
 
   _resetInnerStateOnInput: ->
     @_autoCreatedListFromText = false
@@ -306,9 +282,7 @@ class Contenteditable extends React.Component
 
   _onTabDown: (event) ->
     editableNode = @_editableNode()
-    range = DOMUtils.getRangeInScope(editableNode)
-
-    # @props.lifecycleCallbacks.onTabDown(editableNode, event, range)
+    @_runCallbackOnPlugins("onTabDown", event)
 
     return if event.defaultPrevented
     @_onTabDownDefaultBehavior(event)
@@ -686,19 +660,12 @@ class Contenteditable extends React.Component
     window.removeEventListener("mousedown", @__onMouseDown)
     window.removeEventListener("mouseup", @__onMouseUp)
 
-  _onShowContextualMenu: (event) =>
+  _onShowContextMenu: (event) =>
     @refs["toolbarController"]?.forceClose()
     event.preventDefault()
 
     selection = document.getSelection()
-    range = selection.getRangeAt(0)
-
-    # On Windows, right-clicking a word does not select it at the OS-level.
-    # We need to implement this behavior locally for the rest of the logic here.
-    if range.collapsed
-      DOMUtils.Mutating.selectWordContainingRange(range)
-      range = selection.getRangeAt(0)
-
+    range = DOMUtils.Mutating.getRangeAt(selection, 0)
     text = range.toString()
 
     remote = require('remote')
@@ -706,48 +673,22 @@ class Contenteditable extends React.Component
     Menu = remote.require('menu')
     MenuItem = remote.require('menu-item')
 
-    apply = (newtext) =>
-      range.deleteContents()
-      node = document.createTextNode(newtext)
-      range.insertNode(node)
-      range.selectNode(node)
-      selection.removeAllRanges()
-      selection.addRange(range)
-      # @props.lifecycleCallbacks.onSubstitutionPerformed(@_editableNode())
-
     cut = =>
       clipboard.writeText(text)
-      apply('')
+      DOMUtils.Mutating.applyTextInRange(range, selection, '')
 
     copy = =>
       clipboard.writeText(text)
 
     paste = =>
-      apply(clipboard.readText())
+      DOMUtils.Mutating.applyTextInRange(range, selection, clipboard.readText())
 
     menu = new Menu()
 
-    ## TODO, move into spellcheck package
-    if @props.spellcheck
-      spellchecker = require('spellchecker')
-      learnSpelling = =>
-        spellchecker.add(text)
-        # @props.lifecycleCallbacks.onLearnSpelling(@_editableNode(), text)
-      if spellchecker.isMisspelled(text)
-        corrections = spellchecker.getCorrectionsForMisspelling(text)
-        if corrections.length > 0
-          corrections.forEach (correction) ->
-            menu.append(new MenuItem({ label: correction, click:( -> apply(correction))}))
-        else
-          menu.append(new MenuItem({ label: 'No Guesses Found', enabled: false}))
-
-        menu.append(new MenuItem({ type: 'separator' }))
-        menu.append(new MenuItem({ label: 'Learn Spelling', click: learnSpelling}))
-        menu.append(new MenuItem({ type: 'separator' }))
-
-    menu.append(new MenuItem({ label: 'Cut', click:cut}))
-    menu.append(new MenuItem({ label: 'Copy', click:copy}))
-    menu.append(new MenuItem({ label: 'Paste', click:paste}))
+    @_runCallbackOnPlugins("onShowContextMenu", event, menu)
+    menu.append(new MenuItem({ label: 'Cut', click: cut}))
+    menu.append(new MenuItem({ label: 'Copy', click: copy}))
+    menu.append(new MenuItem({ label: 'Paste', click: paste}))
     menu.popup(remote.getCurrentWindow())
 
   _onMouseDown: (event) =>
@@ -788,10 +729,7 @@ class Contenteditable extends React.Component
     selection = document.getSelection()
     return event unless DOMUtils.selectionInScope(selection, editableNode)
 
-    range = DOMUtils.getRangeInScope(editableNode)
-
-    # @props.lifecycleCallbacks.onMouseUp(editableNode, event, range)
-
+    @_runCallbackOnPlugins("onClick", event)
     return event
 
   _onDragStart: (event) =>

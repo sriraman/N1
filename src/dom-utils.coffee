@@ -69,6 +69,24 @@ DOMUtils =
           continue
       return elements
 
+    applyTextInRange: (range, selection, newText) ->
+      range.deleteContents()
+      node = document.createTextNode(newText)
+      range.insertNode(node)
+      range.selectNode(node)
+      selection.removeAllRanges()
+      selection.addRange(range)
+
+    getRangeAt: (selection, index) ->
+      range = selection.getRangeAt(index)
+
+      # On Windows, right-clicking a word does not select it at the OS-level.
+      # We need to implement this behavior locally for the rest of the logic here.
+      if range.collapsed
+        DOMUtils.Mutating.selectWordContainingRange(range)
+        range = selection.getRangeAt(index)
+      return range
+
     # This method finds the bounding points of the word that the range
     # is currently within and selects that word.
     selectWordContainingRange: (range) ->

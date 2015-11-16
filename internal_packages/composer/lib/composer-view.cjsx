@@ -29,6 +29,8 @@ CollapsedParticipants = require './collapsed-participants'
 
 Fields = require './fields'
 
+ComposerExtensionsPlugin = require './composer-extensions-plugin'
+
 # The ComposerView is a unique React component because it (currently) is a
 # singleton. Normally, the React way to do things would be to re-render the
 # Composer with new props.
@@ -294,38 +296,9 @@ class ComposerView extends React.Component
       onScrollTo={@props.onRequestScrollTo}
       onFilePaste={@_onFilePaste}
       onScrollToBottom={@_onScrollToBottom()}
-      lifecycleCallbacks={@_contenteditableLifecycleCallbacks()}
+      plugins={[ComposerExtensionsPlugin]}
       getComposerBoundingRect={@_getComposerBoundingRect}
       initialSelectionSnapshot={@_recoveredSelection} />
-
-  _contenteditableLifecycleCallbacks: ->
-    componentDidUpdate: (editableNode) =>
-      for extension in DraftStore.extensions()
-        extension.onComponentDidUpdate?(editableNode)
-
-    onInput: (editableNode, event) =>
-      for extension in DraftStore.extensions()
-        extension.onInput?(editableNode, event)
-
-    onTabDown: (editableNode, event, range) =>
-      for extension in DraftStore.extensions()
-        extension.onTabDown?(editableNode, range, event)
-
-    onSubstitutionPerformed: (editableNode) =>
-      for extension in DraftStore.extensions()
-        extension.onSubstitutionPerformed?(editableNode)
-
-    onLearnSpelling: (editableNode, text) =>
-      for extension in DraftStore.extensions()
-        extension.onLearnSpelling?(editableNode, text)
-
-    onMouseUp: (editableNode, event, range) =>
-      return unless range
-      try
-        for extension in DraftStore.extensions()
-          extension.onMouseUp?(editableNode, range, event)
-      catch e
-        console.error('DraftStore extension raised an error: '+e.toString())
 
   # The contenteditable decides when to request a scroll based on the
   # position of the cursor and its relative distance to this composer
