@@ -145,7 +145,8 @@ class NylasExports
   @load "BufferedNodeProcess", 'buffered-node-process'
   @get "APMWrapper", -> require('../apm-wrapper')
 
-  @require "ContenteditableWorkarounds", 'contenteditable-workarounds'
+  # Contenteditable
+  @load "ContenteditablePlugin", 'components/contenteditable/contenteditable-plugin'
 
   # Testing
   @get "NylasTestUtils", -> require '../../spec/nylas-test-utils'

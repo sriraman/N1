@@ -25,3 +25,6 @@ class ContenteditablePlugin
 
   @onKeyDown: (event, editableNode, selection, innerStateProxy) ->
 
+  @onTabDown: (event, editableNode, selection, innerStateProxy) ->
+
+  @onShowContextMenu: (event, editableNode, selection, innerStateProxy, menu) ->
