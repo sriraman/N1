@@ -112,12 +112,16 @@ class ComposerView extends React.Component
     "composer:redo": @redo
 
   _applyFocusedField: ->
-    if @state.focusedField
+    if @state.focusedField and @_lastFocusedField isnt @state.focusedField
+      @_lastFocusedField = @state.focusedField
       return unless @refs[@state.focusedField]
       if @refs[@state.focusedField].focus
         @refs[@state.focusedField].focus()
       else
         React.findDOMNode(@refs[@state.focusedField]).focus()
+
+      if @state.focusedField is Fields.Body
+        @refs[Fields.Body].selectEnd()
 
   componentWillReceiveProps: (newProps) =>
     @_ignoreNextTrigger = false
