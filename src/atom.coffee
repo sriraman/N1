@@ -30,6 +30,9 @@ module.exports =
 class Atom extends Model
   @version: 1  # Increment this when the serialization format changes
 
+  assert: (bool, msg) ->
+    throw new Error("Assertion error: #{msg}") if not bool
+
   # Load or create the application environment
   # Returns an Atom instance, fully initialized
   @loadOrCreate: ->
