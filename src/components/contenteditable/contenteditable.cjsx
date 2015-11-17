@@ -5,7 +5,7 @@ React = require 'react'
 ClipboardService = require './clipboard-service'
 FloatingToolbarContainer = require './floating-toolbar-container'
 
-AutomaticListManager = require './automatic-list-manager'
+ListManager = require './list-manager'
 
 ###
 Public: A modern, well-behaved, React-compatible contenteditable
@@ -54,7 +54,7 @@ class Contenteditable extends React.Component
     spellcheck: true
     floatingToolbar: true
 
-  corePlugins: [AutomaticListManager]
+  corePlugins: [ListManager]
 
   # We allow extensions to read, and mutate the:
   #
@@ -202,16 +202,31 @@ class Contenteditable extends React.Component
     @_onInput()
 
   _runCallbackOnPlugins: (method, event, args...) =>
-    for plugin in (@corePlugins.concat(@props.plugins))
+
+    executeCallback = (plugin) =>
       callback = plugin[method] ? ->
       callback = callback.bind(plugin)
       @atomicEdit(callback, event, args...)
 
+    for plugin in @props.plugins
+      break if event.propagationStopped
+      executeCallback(plugin)
+
+    return if event.defaultPrevented
+    for plugin in @corePlugins
+      break if event.propagationStopped
+      executeCallback(plugin)
+
   _onKeyDown: (event) =>
     @_runCallbackOnPlugins("onKeyDown", event)
 
+    if event.defaultPrevented or event.propagationStopped
+      event.stopPropagation()
+      return
+
     if event.key is "Tab"
-      @_onTabDown(event)
+      @_onTabDownDefaultBehavior(event)
+
     U = 85
     if event.which is U and (event.metaKey or event.ctrlKey)
       event.preventDefault()
@@ -280,30 +295,10 @@ class Contenteditable extends React.Component
     @_setupSelectionListeners()
     @_onInput()
 
-  _onTabDown: (event) ->
-    editableNode = @_editableNode()
-    @_runCallbackOnPlugins("onTabDown", event)
-
-    return if event.defaultPrevented
-    @_onTabDownDefaultBehavior(event)
-
   _onTabDownDefaultBehavior: (event) ->
-    event.preventDefault()
-
     selection = document.getSelection()
     if selection?.isCollapsed
-      # Only Elements (not Text nodes) have the `closest` method
-      li = DOMUtils.closestAtCursor("li")
-      if li
-        if event.shiftKey
-          list = DOMUtils.closestAtCursor("ul, ol")
-          if list.querySelectorAll('li')?[0] is li # We're in first li
-            @_replaceFirstListItem(li, li.innerHTML)
-          else
-            document.execCommand("outdent")
-        else
-          document.execCommand("indent")
-      else if event.shiftKey
+      if event.shiftKey
         if @_atTabChar()
           @_removeLastCharacter()
         else if @_atBeginning()
@@ -315,6 +310,7 @@ class Contenteditable extends React.Component
         document.execCommand("insertText", false, "")
       else
         document.execCommand("insertText", false, "\t")
+    event.preventDefault()
     event.stopPropagation()
 
   _selectionInText: (selection) ->

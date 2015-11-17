@@ -2,17 +2,30 @@ _str = require 'underscore.string'
 {DOMUtils} = require 'nylas-exports'
 ContenteditablePlugin = require './contenteditable-plugin'
 
-class AutomaticListManager extends ContenteditablePlugin
+class ListManager extends ContenteditablePlugin
   @onInput: (event, editableNode, selection) ->
     if @_spaceEntered and @hasListStartSignature(selection)
       @createList(event, selection)
 
   @onKeyDown: (event, editableNode, selection) ->
     @_spaceEntered = event.key is " "
-    if event.key is "Backspace" and DOMUtils.atStartOfList()
-      @outdentListItem(selection)
+    if DOMUtils.isInList()
+      if event.key is "Backspace" and DOMUtils.atStartOfList()
+        event.preventDefault()
+        @outdentListItem(selection)
+      else if event.key is "Tab" and selection.isCollapsed
+        event.preventDefault()
+        if event.shiftKey
+          @outdentListItem(selection)
+        else
+          document.execCommand("indent")
+      else
+        # Do nothing, let the event through.
+        @originalInput = null
     else
       @originalInput = null
+
+    return event
 
   @bulletRegex: -> /^[*-]\s/
 
@@ -82,15 +95,10 @@ class AutomaticListManager extends ContenteditablePlugin
     @originalInput = null
 
   @outdentListItem: (selection) ->
-    li = DOMUtils.closestAtCursor("li")
-    list = DOMUtils.closestAtCursor("ul, ol")
-    return unless li and list
-    event.preventDefault()
-
     if @originalInput
       document.execCommand("outdent")
       @restoreOriginalInput(selection)
     else
       document.execCommand("outdent")
 
-module.exports = AutomaticListManager
+module.exports = ListManager

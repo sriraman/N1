@@ -5,10 +5,11 @@ class ComposerExtensionsPlugin extends ContenteditablePlugin
     for extension in DraftStore.extensions()
       extension.onInput?(editableNode, event)
 
-  @onTabDown: (event, editableNode, selection, innerStateProxy) ->
-    range = DOMUtils.getRangeInScope(editableNode)
-    for extension in DraftStore.extensions()
-      extension.onTabDown?(editableNode, range, event)
+  @onKeyDown: (event, editableNode, selection, innerStateProxy) ->
+    if event.key is "Tab"
+      range = DOMUtils.getRangeInScope(editableNode)
+      for extension in DraftStore.extensions()
+        extension.onTabDown?(editableNode, range, event)
 
   @onShowContextMenu: (args...) ->
     for extension in DraftStore.extensions()

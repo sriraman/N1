@@ -147,6 +147,8 @@ class Atom extends Model
     unless @inDevMode() or @inSpecMode()
       require('grim').deprecate = ->
 
+    @enhanceEventObject()
+
     @setupErrorLogger()
 
     @unsubscribe()
@@ -933,3 +935,10 @@ class Atom extends Model
         remote.require('app').quit()
       else
         @close()
+
+  enhanceEventObject: ->
+    overriddenStop =  Event::stopPropagation
+    Event::stopPropagation = ->
+      @propagationStopped = true
+      overriddenStop.apply(@, arguments)
+

@@ -142,6 +142,11 @@ DOMUtils =
     return unless selection?.isCollapsed
     return DOMUtils.closest(selection.anchorNode, selector)
 
+  isInList: ->
+    li = DOMUtils.closestAtCursor("li")
+    list = DOMUtils.closestAtCursor("ul, ol")
+    return li and list
+
   # Returns an array of all immediately adjacent nodes of a particular
   # nodeName relative to the root. Includes the root if it has the correct
   # nodeName.
