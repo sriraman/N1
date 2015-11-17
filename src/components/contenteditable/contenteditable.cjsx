@@ -265,43 +265,13 @@ class Contenteditable extends React.Component
   _notifyParentOfChange: ->
     @props.onChange(target: {value: @_editableNode().innerHTML})
 
-  _replaceFirstListItem: (li, replaceWith) ->
-    @_teardownSelectionListeners()
-    list = DOMUtils.closest(li, "ul, ol")
-
-    if replaceWith.length is 0
-      replaceWith = replaceWith.replace /\s/g, "&nbsp;"
-      text = document.createElement("div")
-      text.innerHTML = "<br>"
-    else
-      replaceWith = replaceWith.replace /\s/g, "&nbsp;"
-      text = document.createElement("span")
-      text.innerHTML = "#{replaceWith}"
-
-    if list.querySelectorAll('li').length <= 1
-      # Delete the whole list and replace with text
-      list.parentNode.replaceChild(text, list)
-    else
-      # Delete the list item and prepend the text before the rest of the
-      # list
-      li.parentNode.removeChild(li)
-      list.parentNode.insertBefore(text, list)
-
-    child = text.childNodes[0] ? text
-    index = Math.max(replaceWith.length - 1, 0)
-    selection = document.getSelection()
-    selection.setBaseAndExtent(child, index, child, index)
-
-    @_setupSelectionListeners()
-    @_onInput()
-
   _onTabDownDefaultBehavior: (event) ->
     selection = document.getSelection()
     if selection?.isCollapsed
       if event.shiftKey
-        if @_atTabChar()
-          @_removeLastCharacter()
-        else if @_atBeginning()
+        if DOMUtils.isAtTabChar(selection)
+          @_removeLastCharacter(selection)
+        else if DOMUtils.isAtBeginningOfDocument(@_editableNode(), selection)
           return # Don't stop propagation
       else
         document.execCommand("insertText", false, "\t")
@@ -313,29 +283,8 @@ class Contenteditable extends React.Component
     event.preventDefault()
     event.stopPropagation()
 
-  _selectionInText: (selection) ->
-    return false unless selection
-    return selection.isCollapsed and selection.anchorNode.nodeType is Node.TEXT_NODE and selection.anchorOffset > 0
-
-  _atTabChar: ->
-    selection = document.getSelection()
-    if @_selectionInText(selection)
-      return selection.anchorNode.textContent[selection.anchorOffset - 1] is "\t"
-    else return false
-
-  _atBeginning: ->
-    selection = document.getSelection()
-    return false if not selection.isCollapsed
-    return false if selection.anchorOffset > 0
-    el = @_editableNode()
-    return true if el.childNodes.length is 0
-    return true if selection.anchorNode is el
-    firstChild = el.childNodes[0]
-    return selection.anchorNode is firstChild
-
-  _removeLastCharacter: ->
-    selection = document.getSelection()
-    if @_selectionInText(selection)
+  _removeLastCharacter: (selection) ->
+    if DOMUtils.isSelectionInTextNode(selection)
       node = selection.anchorNode
       offset = selection.anchorOffset
       @_teardownSelectionListeners()
@@ -603,7 +552,7 @@ class Contenteditable extends React.Component
 
       rect = rangeInScope.getBoundingClientRect()
       if DOMUtils.isEmptyBoudingRect(rect)
-        rect = @_getSelectionRectFromDOM(selection)
+        rect = DOMUtils.getSelectionRectFromDOM(selection)
 
       if rect
         @props.onScrollTo({rect})
@@ -629,17 +578,6 @@ class Contenteditable extends React.Component
     parentRect = @props.getComposerBoundingRect()
     selfRect = @_editableNode().getBoundingClientRect()
     return Math.abs(parentRect.bottom - selfRect.bottom) <= 250
-
-  _getSelectionRectFromDOM: (selection) ->
-    node = selection.anchorNode
-    if node.nodeType is Node.TEXT_NODE
-      r = document.createRange()
-      r.selectNodeContents(node)
-      return r.getBoundingClientRect()
-    else if node.nodeType is Node.ELEMENT_NODE
-      return node.getBoundingClientRect()
-    else
-      return null
 
   # We use global listeners to determine whether or not dragging is
   # happening. This is because dragging may stop outside the scope of
@@ -784,9 +722,6 @@ class Contenteditable extends React.Component
 
     @_ensureSelectionVisible(selection)
     @_setupSelectionListeners()
-
-  _getNodeIndex: (nodeToFind) =>
-    DOMUtils.findSimilarNodes(@_editableNode(), nodeToFind).indexOf nodeToFind
 
   # This needs to be in the contenteditable area because we need to first
   # restore the selection before calling the `execCommand`

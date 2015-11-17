@@ -121,6 +121,38 @@ DOMUtils =
       index = node.length
       selection.setBaseAndExtent(node, index, node, index)
 
+  getSelectionRectFromDOM: (selection) ->
+    selection ?= document.getSelection()
+    node = selection.anchorNode
+    if node.nodeType is Node.TEXT_NODE
+      r = document.createRange()
+      r.selectNodeContents(node)
+      return r.getBoundingClientRect()
+    else if node.nodeType is Node.ELEMENT_NODE
+      return node.getBoundingClientRect()
+    else
+      return null
+
+  isSelectionInTextNode: (selection) ->
+    selection ?= document.getSelection()
+    return false unless selection
+    return selection.isCollapsed and selection.anchorNode.nodeType is Node.TEXT_NODE and selection.anchorOffset > 0
+
+  isAtTabChar: (selection) ->
+    selection ?= document.getSelection()
+    if DOMUtils.isSelectionInTextNode(selection)
+      return selection.anchorNode.textContent[selection.anchorOffset - 1] is "\t"
+    else return false
+
+  isAtBeginningOfDocument: (dom, selection) ->
+    selection ?= document.getSelection()
+    return false if not selection.isCollapsed
+    return false if selection.anchorOffset > 0
+    return true if dom.childNodes.length is 0
+    return true if selection.anchorNode is dom
+    firstChild = dom.childNodes[0]
+    return selection.anchorNode is firstChild
+
   atStartOfList: ->
     selection = document.getSelection()
     anchor = selection.anchorNode
