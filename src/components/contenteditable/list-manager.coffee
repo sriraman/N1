@@ -50,6 +50,8 @@ class ListManager extends ContenteditablePlugin
       @removeListStarter(@bulletRegex(), selection)
     else
       return
+    el = DOMUtils.closest(selection.anchorNode, "li")
+    DOMUtils.Mutating.removeEmptyNodes(el)
     event.preventDefault()
 
   @removeListStarter: (starterRegex, selection) ->

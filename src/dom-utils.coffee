@@ -29,6 +29,13 @@ DOMUtils =
       selection = document.getSelection()
       selection.setBaseAndExtent(child, index, child, index)
 
+    removeEmptyNodes: (node) ->
+      Array::slice.call(node.childNodes).forEach (child) ->
+        if child.textContent is ''
+          node.removeChild(child)
+        else
+          DOMUtils.Mutating.removeEmptyNodes(child)
+
     # Given a bunch of elements, it will go through and find all elements
     # that are adjacent to that one of the same type. For each set of
     # adjacent elements, it will put all children of those elements into
