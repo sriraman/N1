@@ -486,4 +486,6 @@ class Application
     isSpec = true
     devMode = true
     safeMode ?= false
-    new NylasWindow({bootstrapScript, resourcePath, exitWhenDone, isSpec, devMode, specDirectory, specFilePattern, logFile, safeMode})
+    win = new NylasWindow({bootstrapScript, resourcePath, exitWhenDone, isSpec, devMode, specDirectory, specFilePattern, logFile, safeMode})
+    if not exitWhenDone
+      win.browserWindow.openDevTools()
