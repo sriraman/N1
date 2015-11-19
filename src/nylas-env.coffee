@@ -223,6 +223,29 @@ class NylasEnvConstructor extends Model
     window.onbeforeunload = => @_unloading()
     @_unloadCallbacks = []
 
+    console.log "Gonna try and connect to webdriver now!!!"
+    options =
+      host: "127.0.0.1"
+      port: 9515
+    SpectronApp = require('spectron').Application
+    @spectron = new SpectronApp
+    WebDriver = require('webdriverio')
+    @spectron.client = new WebDriver.remote(options)
+    @spectron.addCommands()
+    @spectron.client.sessions().then ({value}) =>
+      {sessionId, capabilities} = value[0]
+      @spectron.client.requestHandler.sessionID = sessionId
+      @spectron.client.sessionID = sessionId
+      @spectron.client.capabilities = capabilities
+      @spectron.client.desiredCapabilities = capabilities
+    .then =>
+      @spectron.client.windowHandles().then ({value}) =>
+        mainWindowId = value[1]
+        @spectron.client.window(mainWindowId)
+    .then =>
+      @spectron.client.getHTML('body').then (html) ->
+        console.log html
+
   # Start our error reporting to the backend and attach error handlers
   # to the window and the Bluebird Promise library, converting things
   # back through the sourcemap as necessary.

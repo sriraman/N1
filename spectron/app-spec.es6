@@ -6,7 +6,14 @@ describe('Nylas', ()=> {
       path: jasmine.APP_PATH,
       args: jasmine.APP_ARGS,
     });
-    this.app.start().then(()=> setTimeout(done, jasmine.BOOT_WAIT));
+    this.app.start().then(()=> {
+      console.log("STARTING")
+      this.app.client.windowHandles().then((handles)=> {
+        console.log("Window handles:");
+        console.log(JSON.stringify(handles));
+      });
+      setTimeout(done, jasmine.BOOT_WAIT)
+    });
   });
 
   afterEach((done)=> {
