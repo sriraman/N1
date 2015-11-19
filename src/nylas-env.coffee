@@ -223,7 +223,31 @@ class NylasEnvConstructor extends Model
     window.onbeforeunload = => @_unloading()
     @_unloadCallbacks = []
 
-    console.log "Gonna try and connect to webdriver now!!!"
+    @setupSpectron() if @inSpecMode()
+
+  # When the test runner calls Spectron.Application::start, Electron
+  # ChromeDriver will boot up an instance of the app with the appropriate
+  # flags. ChromeDriver will setup a Selenium server that hooks into the
+  # booted process and exposes the Selenium Chrome API.
+  #
+  # `Spectron.Application::start` also creates a `WebDriver` client via the
+  # `webdriverio` library that connects to the Selenium server and wraps the
+  # RESTful Selenium localhost API with a nicer Node API.
+  #
+  # Since this code here is "inside" the booted process, we have no way of
+  # directly accessing the client from the test runner. However, we can still
+  # connect directly to the Selenium server to control ourself.
+  #
+  # We unfortunately can't create a new session with Selenium, because we
+  # won't be connected to the correct process (us!). Instead we need to
+  # inspect the existing sessions and use the existing one instead.
+  #
+  # We then manually setup the WebDriver session, and add in the extra
+  # spectron APIs via `Spectron.Application::addCommands`.
+  #
+  # http://webdriver.io/api/protocol/windowHandles.html
+  # https://code.google.com/p/selenium/wiki/JsonWireProtocol#/session/:sessionId/element/:id/value
+  setupSpectron: ->
     options =
       host: "127.0.0.1"
       port: 9515
@@ -235,16 +259,14 @@ class NylasEnvConstructor extends Model
     @spectron.client.sessions().then ({value}) =>
       {sessionId, capabilities} = value[0]
       @spectron.client.requestHandler.sessionID = sessionId
+      # https://github.com/webdriverio/webdriverio/blob/master/lib/protocol/init.js
       @spectron.client.sessionID = sessionId
       @spectron.client.capabilities = capabilities
       @spectron.client.desiredCapabilities = capabilities
-    .then =>
-      @spectron.client.windowHandles().then ({value}) =>
-        mainWindowId = value[1]
-        @spectron.client.window(mainWindowId)
-    .then =>
-      @spectron.client.getHTML('body').then (html) ->
-        console.log html
+    # .then =>
+    #   @spectron.client.windowHandles().then ({value}) =>
+    #     mainWindowId = value[1]
+    #     @spectron.client.window(mainWindowId)
 
   # Start our error reporting to the backend and attach error handlers
   # to the window and the Bluebird Promise library, converting things
