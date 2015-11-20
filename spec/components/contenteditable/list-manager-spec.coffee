@@ -1,13 +1,13 @@
 ContenteditableTestHarness = require './contenteditable-test-harness'
 
-describe "ListManager", ->
+xdescribe "ListManager", ->
   beforeEach ->
     @ce = new ContenteditableTestHarness
 
   afterEach ->
     @ce.cleanup()
 
-  ffit "Creates ordered lists", ->
+  it "Creates ordered lists", ->
     @ce.keyDown ['1', '.', ' ']
     @ce.expectHTML "<ol><li></li></ol>"
     @ce.expectSelection (dom) ->

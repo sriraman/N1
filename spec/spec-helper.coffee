@@ -436,28 +436,3 @@ window.setEditorWidthInChars = (editorView, widthInChars, charWidth=editorView.c
 window.setEditorHeightInLines = (editorView, heightInLines, lineHeight=editorView.lineHeight) ->
   editorView.height(editorView.getEditor().getLineHeightInPixels() * heightInLines)
   editorView.component?.measureHeightAndWidth()
-
-$.fn.resultOfTrigger = (type) ->
-  event = $.Event(type)
-  this.trigger(event)
-  event.result
-
-$.fn.enableKeymap = ->
-  @on 'keydown', (e) ->
-    originalEvent = e.originalEvent ? e
-    Object.defineProperty(originalEvent, 'target', get: -> e.target) unless originalEvent.target?
-    NylasEnv.keymaps.handleKeyboardEvent(originalEvent)
-    not e.originalEvent.defaultPrevented
-
-$.fn.attachToDom = ->
-  @appendTo($('#jasmine-content')) unless @isOnDom()
-
-$.fn.simulateDomAttachment = ->
-  $('<html>').append(this)
-
-$.fn.textInput = (data) ->
-  this.each ->
-    event = document.createEvent('TextEvent')
-    event.initTextEvent('textInput', true, true, window, data)
-    event = $.event.fix(event)
-    $(this).trigger(event)
