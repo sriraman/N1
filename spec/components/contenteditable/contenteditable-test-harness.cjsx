@@ -44,9 +44,7 @@ class ContenteditableTestHarness
     NylasTestUtils.removeFromDocument(@wrap)
 
   keyDown: (keyStrokes=[]) ->
-    for key in keyStrokes
-      NylasTestUtils.keyDown key, @getDOM()
-      advanceClock(100)
+    NylasEnv.spectron.keys(keyStrokes)
 
   expectHTML: (expectedHTML) ->
     expect(@wrap.state.value).toBe expectedHTML

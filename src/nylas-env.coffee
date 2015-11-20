@@ -223,7 +223,7 @@ class NylasEnvConstructor extends Model
     window.onbeforeunload = => @_unloading()
     @_unloadCallbacks = []
 
-    @setupSpectron() if @inSpecMode()
+    @setupSpectron()# if @inSpecMode()
 
   # When the test runner calls Spectron.Application::start, Electron
   # ChromeDriver will boot up an instance of the app with the appropriate
@@ -263,10 +263,10 @@ class NylasEnvConstructor extends Model
       @spectron.client.sessionID = sessionId
       @spectron.client.capabilities = capabilities
       @spectron.client.desiredCapabilities = capabilities
-    # .then =>
-    #   @spectron.client.windowHandles().then ({value}) =>
-    #     mainWindowId = value[1]
-    #     @spectron.client.window(mainWindowId)
+    .then =>
+      @spectron.client.windowHandles().then ({value}) =>
+        mainWindowId = value[1]
+        @spectron.client.window(mainWindowId)
 
   # Start our error reporting to the backend and attach error handlers
   # to the window and the Bluebird Promise library, converting things
