@@ -263,10 +263,6 @@ class NylasEnvConstructor extends Model
       @spectron.client.sessionID = sessionId
       @spectron.client.capabilities = capabilities
       @spectron.client.desiredCapabilities = capabilities
-    # .then =>
-    #   @spectron.client.windowHandles().then ({value}) =>
-    #     mainWindowId = value[1]
-    #     @spectron.client.window(mainWindowId)
 
   # Start our error reporting to the backend and attach error handlers
   # to the window and the Bluebird Promise library, converting things

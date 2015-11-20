@@ -23,49 +23,50 @@ executeTests = (test, grunt, done) ->
     grunt.log.error("Process error: #{err}")
 
   testProc.on 'close', (exitCode, signal) ->
-    # if testSucceeded and exitCode is 0
-    #   done()
-    # else
-    #   testOutput = testOutput.replace(/\x1b\[[^m]+m/g, '')
-    #   url = "https://hooks.slack.com/services/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"
-    #   request.post
-    #     url: url
-    #     json:
-    #       username: "Edgehill Builds"
-    #       text: "Aghhh somebody broke the build. ```#{testOutput}```"
-    #   , (err, httpResponse, body) ->
-    #     done(false)
+    if testSucceeded and exitCode is 0
+      done()
+    else
+      testOutput = testOutput.replace(/\x1b\[[^m]+m/g, '')
+      url = "https://hooks.slack.com/services/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"
+      request.post
+        url: url
+        json:
+          username: "Edgehill Builds"
+          text: "Aghhh somebody broke the build. ```#{testOutput}```"
+      , (err, httpResponse, body) ->
+        done(false)
 
 module.exports = (grunt) ->
 
   grunt.registerTask 'run-spectron-specs', 'Run spectron specs', ->
-    rootDir = path.resolve('.')
-    appPath = path.resolve('./electron/Electron.app/Contents/MacOS/Electron')
-    appPath = path.resolve('./N1.sh')
+    electronLauncher = path.resolve("./electron/Electron.app/Contents/MacOS/Electron")
+    nylasRoot = path.resolve('.')
+    electronArgs = [nylasRoot]
+    buildDir = grunt.config.get('nylasGruntConfig.buildDir')
+    nylasArgs = ["--test=window", "--enable-logging", "--resource-path=#{nylasRoot}"]
 
     done = @async()
-    npmPath = path.resolve "./build/node_modules/.bin/npm"
-    grunt.log.writeln 'App exists: ' + fs.existsSync(appPath)
+    npm = path.resolve "./build/node_modules/.bin/npm"
+    grunt.log.writeln 'App exists: ' + fs.existsSync(electronLauncher)
 
     process.chdir('./spectron')
     grunt.log.writeln "Current dir: #{process.cwd()}"
-    installProc = proc.exec "#{npmPath} install", (error) ->
+    installProc = proc.exec "#{npm} install", (error) ->
       if error?
         process.chdir('..')
         grunt.log.error('Failed while running npm install in spectron folder')
         grunt.fail.warn(error)
         done(false)
       else
-        appArgs = [
+        npmArgs = [
           'test'
-          "APP_PATH=#{appPath}"
-          "APP_ARGS=--dev"
-          # "APP_ARGS=#{rootDir}"
+          "ELECTRON_LAUNCHER=#{electronLauncher}"
+          "ELECTRON_ARGS=#{electronArgs.join(',')}"
+          "NYLAS_ARGS=#{nylasArgs.join(',')}"
         ]
-        executeTests cmd: npmPath, args: appArgs, grunt, (succeeded) ->
+        executeTests cmd: npm, args: npmArgs, grunt, (succeeded) ->
           process.chdir('..')
           done(succeeded)
-
 
   grunt.registerTask 'run-edgehill-specs', 'Run the specs', ->
     done = @async()
