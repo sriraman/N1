@@ -44,7 +44,7 @@ class ContenteditableTestHarness
     NylasTestUtils.removeFromDocument(@wrap)
 
   keyDown: (keyStrokes=[]) ->
-    NylasEnv.spectron.keys(keyStrokes)
+    NylasEnv.spectron.client.keys(keyStrokes)
 
   expectHTML: (expectedHTML) ->
     expect(@wrap.state.value).toBe expectedHTML

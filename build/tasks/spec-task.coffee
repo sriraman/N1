@@ -41,6 +41,7 @@ module.exports = (grunt) ->
   grunt.registerTask 'run-spectron-specs', 'Run spectron specs', ->
     rootDir = path.resolve('.')
     appPath = path.resolve('./electron/Electron.app/Contents/MacOS/Electron')
+    appPath = path.resolve('./N1.sh')
 
     done = @async()
     npmPath = path.resolve "./build/node_modules/.bin/npm"
@@ -58,7 +59,8 @@ module.exports = (grunt) ->
         appArgs = [
           'test'
           "APP_PATH=#{appPath}"
-          "APP_ARGS=#{rootDir}"
+          "APP_ARGS=--dev"
+          # "APP_ARGS=#{rootDir}"
         ]
         executeTests cmd: npmPath, args: appArgs, grunt, (succeeded) ->
           process.chdir('..')

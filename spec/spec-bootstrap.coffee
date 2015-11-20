@@ -20,8 +20,6 @@ try
   # that are focused in the very first spec run.
   if not NylasEnv.getLoadSettings().exitWhenDone
     NylasEnv.getCurrentWindow().show()
-    cover = document.getElementById("application-loading-cover")
-    cover.remove()
 
   {runSpecSuite} = require './jasmine-helper'
 

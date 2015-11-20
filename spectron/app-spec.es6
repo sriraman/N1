@@ -1,13 +1,23 @@
-import {Application} from 'spectron';
+import Application from '../../../spectron/lib/application.js';
 
 describe('Nylas', ()=> {
   beforeAll((done)=>{
+    console.log("---> Booting up Nylas");
+    args = jasmine.APP_ARGS.join(' ');
+    console.log(`     $ ${jasmine.APP_PATH} ${args}`);
+    console.log(jasmine.APP_ARGS);
+
+    appPath = "/Applications/Nylas N1.app/Contents/MacOS/Nylas"
+    electronPath = "/Users/evanmorikawa/Code/edgehill/N1/electron/Electron.app/Contents/MacOS/Electron"
+    N1Path = "/Users/evanmorikawa/Code/edgehill/N1"
+
     this.app = new Application({
-      path: jasmine.APP_PATH,
-      args: jasmine.APP_ARGS,
+      path: electronPath,
+      args: [N1Path, "--test=window", `--resource-path=${N1Path}`]
     });
+
     this.app.start().then(()=> {
-      console.log("STARTING")
+      console.log("=============== STARTING =================")
       this.app.client.windowHandles().then((handles)=> {
         console.log("Window handles:");
         console.log(JSON.stringify(handles));

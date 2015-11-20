@@ -112,6 +112,8 @@
   setupCrashReporter = function() {};
 
   parseCommandLine = function() {
+    console.log("------------ STARTING N1 --------------")
+    console.error("------------ ERROR STARTING N1 --------------")
     var args, devMode, devResourcePath, executedFrom, logFile, newWindow, options, packageDirectoryPath, packageManifest, packageManifestPath, pathsToOpen, pidToKillWhenClosed, ref, ref1, ref2, resourcePath, safeMode, specDirectory, specFilePattern, specsOnCommandLine, test, urlsToOpen, version;
     version = app.getVersion();
     options = optimist(process.argv.slice(1));
