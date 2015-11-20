@@ -1,5 +1,6 @@
 _ = require 'underscore'
 React = require 'react/addons'
+TimeOverride = require '../../time-override'
 NylasTestUtils = require '../../nylas-test-utils'
 
 {Contenteditable} = require 'nylas-component-kit'
@@ -18,7 +19,7 @@ beforeEach ->
   @ce = new ContenteditableTestHarness
 
 it "can create an ordered list", ->
-  @ce.keyDown ['1', '.', ' ']
+  @ce.keys ['1', '.', ' ']
   @ce.expectHTML "<ol><li></li></ol>"
   @ce.expectSelection (dom) ->
     node: dom.querySelectorAll("li")[0]
@@ -43,8 +44,30 @@ class ContenteditableTestHarness
   cleanup: ->
     NylasTestUtils.removeFromDocument(@wrap)
 
-  keyDown: (keyStrokes=[]) ->
+  keys: (keyStrokes=[]) -> new Promise (resolve, reject) =>
+    TimeOverride.disableSpies()
+    # console.log "About to input keys"
+    # div = document.querySelector("div[contenteditable]")
+    # console.log div
+    # console.log div?.innerHTML
+    # console.log document.activeElement
+    # console.log keyStrokes
+    @getDOM().focus()
     NylasEnv.spectron.client.keys(keyStrokes)
+    window.setTimeout ->
+      resolve()
+      # console.log "After keys!"
+      # NylasEnv.openDevTools()
+      # window.setTimeout ->
+      #   div = document.querySelector("div[contenteditable]")
+      #   console.log(div)
+      #   console.log div?.innerHTML
+      #   NylasEnv.spectron.client.getHTML("div[contenteditable]").then (html) ->
+      #     console.log html
+      #   TimeOverride.enableSpies()
+      #   resolve()
+      # , 100000
+    , 200
 
   expectHTML: (expectedHTML) ->
     expect(@wrap.state.value).toBe expectedHTML
@@ -86,5 +109,8 @@ class Wrap extends React.Component
 
   onChange: (event) ->
     @setState value: event.target.value
+
+  componentDidMount: ->
+    @refs.ceWrap.focus()
 
 module.exports = ContenteditableTestHarness
