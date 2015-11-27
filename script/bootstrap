@@ -1,5 +1,14 @@
-#!/usr/bin/env sh
-cd build; npm install; cd ..
-script/grunt download-electron
-npm install
-node_modules/.bin/electron-rebuild
+#!/usr/bin/env node
+var cp = require('./utils/child-process-wrapper.js');
+process.chdir(require('path').dirname(__dirname));
+
+cp.safeSpawnP("npm", ["install"], {cwd: "./build"}).then(function(){
+  cp.safeSpawnP("npm", ["install"]);
+}).then(function(){
+  cp.safeSpawnP("node_modules/.bin/electron-rebuild");
+}).then(function(){
+  cp.safeSpawnP("script/grunt", ["download-electron"]);
+}).then(function(){
+  console.lg("Success: script/bootstrap complete");
+  process.exit(0);
+})

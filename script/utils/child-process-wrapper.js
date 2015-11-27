@@ -30,17 +30,35 @@ exports.safeSpawn = function(command, args, options, callback) {
   if (!callback) {
     callback = options;
     options = {};
+  } else {
+    options = options || {};
   }
+  options.stdio = "inherit"
   var child = childProcess.spawn(command, args, options);
-  child.stderr.pipe(process.stderr);
-  child.stdout.pipe(process.stdout);
   child.on('error', function(error) {
     console.error('Command \'' + command + '\' failed: ' + error.message);
   });
   child.on('exit', function(code) {
-    if (code != 0)
+    if (code != 0) {
       process.exit(code);
-    else
+    } else
       callback(null);
+  });
+}
+
+exports.safeSpawnP = function(command, args, options) {
+  options = options || {};
+  if(options.cwd) { console.log("$ " +"cd "+options.cwd); }
+  console.log("$ " + command+" "+args.join(" "));
+
+  return new Promise(function(resolve, reject) {
+    exports.safeSpawn(command, args, options, function(){
+      if(options.cwd) { console.log("$ " +"cd -"); }
+      return resolve()
+    });
+  }).catch(function(err){
+    console.error(err.message);
+    console.error(err.stack);
+    process.exit(1);
   });
 }
