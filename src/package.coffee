@@ -394,7 +394,7 @@ class Package
     unless @isCompatible()
       console.warn """
         Failed to require the main module of '#{@name}' because it requires an incompatible native module.
-        Run `apm rebuild` in the package directory to resolve.
+        Run `electron-rebuild` in the package directory to resolve.
       """
       return
     mainModulePath = @getMainModulePath()

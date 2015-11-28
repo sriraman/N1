@@ -17,7 +17,8 @@ Python 2.7 (not 3.x)
 
 ## Running
 
-        electron\electron.exe . --dev
+        npm install -g electron-prebuilt
+        electron . --dev
 
 # Common Issues:
 While `script\bootstrap.cmd` is designed to work out of the box, we have to
@@ -37,12 +38,9 @@ Valid values are `2015`, `2013`, `2013e`, `2012`, etc. (`e` stands for "express"
 The full set of values are [here](https://github.com/nodejs/node/blob/v4.2.1/tools/gyp/pylib/gyp/MSVSVersion.py#L411)
 
 ## Node & Npm
-We only use your system's Node to bootstrap `apm`. Once we have `apm` installed,
-your system's Node no longer matters and we install remaining packages with `apm`.
+Node modules need to rebuilt against Electron's headers instead of Node's v8 headers.
 
-However, since bootstrapping this requires native extensions to be built, we need
-a version of `node` and `node-gyp` that is compatible with your current Visual Studio
-setup.
+Simply run `node_modules\.bin\electron-rebuild`
 
 There is a small chance that depending on where you setup N1, you will get an
 error about file paths being too long. If this happens, you will need to manually

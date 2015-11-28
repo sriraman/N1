@@ -20,17 +20,19 @@ module.exports = (grunt) ->
     rm path.join(buildDir, 'installer')
     mkdir path.dirname(buildDir)
 
+
+    electronDir = path.join("node_modules", "electron-prebuilt", "dist")
     if process.platform is 'darwin'
-      cp 'electron/Electron.app', shellAppDir, filter: /default_app/
+      cp path.join(electronDir,"Electron.app"), shellAppDir, filter: /default_app/
       cp(path.join(shellAppDir, 'Contents', 'MacOS', 'Electron'),
          path.join(shellAppDir, 'Contents', 'MacOS', 'Nylas'))
       rm path.join(shellAppDir, 'Contents', 'MacOS', 'Electron')
     else if process.platform is 'win32'
-      cp 'electron', shellAppDir, filter: /default_app/
+      cp electronDir, shellAppDir, filter: /default_app/
       cp path.join(shellAppDir, 'electron.exe'), path.join(shellAppDir, 'nylas.exe')
       rm path.join(shellAppDir, 'electron.exe')
     else
-      cp 'electron', shellAppDir, filter: /default_app/
+      cp electronDir, shellAppDir, filter: /default_app/
       cp path.join(shellAppDir, 'electron'), path.join(shellAppDir, 'nylas')
       rm path.join(shellAppDir, 'electron')
 
@@ -84,7 +86,6 @@ module.exports = (grunt) ->
       path.join('build', 'resources', 'linux')
       path.join('build', 'resources', 'mac')
       path.join('build', 'resources', 'win')
-      path.join('vendor', 'apm')
 
       # These are only require in dev mode when the grammar isn't precompiled
       path.join('snippets', 'node_modules', 'loophole')
@@ -161,20 +162,6 @@ module.exports = (grunt) ->
     cp 'src', path.join(appDir, 'src'), filter: /.+\.(cson|coffee|cjsx|jsx)$/
     cp 'static', path.join(appDir, 'static')
 
-    # Move all of the node modules inside /apm/node_modules to new-app/apm/node_modules
-    apmInstallDir = path.resolve(appDir, '..', 'new-app', 'apm')
-    mkdir apmInstallDir
-    cp path.join('apm', 'node_modules'), path.resolve(apmInstallDir, 'node_modules'), filter: filterNodeModule
-
-    # Move /apm/node_modules/atom-package-manager to new-app/apm. We're essentially
-    # pulling the atom-package-manager module up outside of the node_modules folder,
-    # which is necessary because npmV3 installs nested dependencies in the same dir.
-    apmPackageDir = path.join(apmInstallDir, 'node_modules', 'atom-package-manager')
-    for name in fs.readdirSync(apmPackageDir)
-      fs.renameSync path.join(apmPackageDir, name), path.join(apmInstallDir, name)
-    fs.unlinkSync(path.join(apmInstallDir, 'node_modules', '.bin', 'apm'))
-    fs.rmdirSync(apmPackageDir)
-
     if process.platform is 'darwin'
       grunt.file.recurse path.join('build', 'resources', 'mac'), (sourcePath, rootDirectory, subDirectory='', filename) ->
         unless /.+\.plist/.test(sourcePath)
@@ -184,7 +171,6 @@ module.exports = (grunt) ->
       cp path.join('build', 'resources', 'win', 'N1.cmd'), path.join(shellAppDir, 'resources', 'cli', 'N1.cmd')
       cp path.join('build', 'resources', 'win', 'N1.sh'), path.join(shellAppDir, 'resources', 'cli', 'N1.sh')
       cp path.join('build', 'resources', 'win', 'nylas-win-bootup.js'), path.join(shellAppDir, 'resources', 'cli', 'nylas-win-bootup.js')
-      cp path.join('build', 'resources', 'win', 'apm.sh'), path.join(shellAppDir, 'resources', 'cli', 'apm.sh')
 
     if process.platform is 'linux'
       cp path.join('build', 'resources', 'linux', 'icons'), path.join(buildDir, 'icons')

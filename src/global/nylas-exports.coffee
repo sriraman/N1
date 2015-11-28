@@ -144,7 +144,7 @@ class NylasExports
   # Process Internals
   @load "LaunchServices", 'launch-services'
   @load "BufferedProcess", 'buffered-process'
-  @get "APMWrapper", -> require('../apm-wrapper')
+  @get "NylasPackageRepo", -> require('../nylas-package-repo')
 
   # Contenteditable
   @load "ContenteditablePlugin", 'components/contenteditable/contenteditable-plugin'

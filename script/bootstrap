@@ -3,12 +3,13 @@ var cp = require('./utils/child-process-wrapper.js');
 process.chdir(require('path').dirname(__dirname));
 
 cp.safeSpawnP("npm", ["install"], {cwd: "./build"}).then(function(){
-  cp.safeSpawnP("npm", ["install"]);
+  return cp.safeSpawnP("npm", ["install"]);
 }).then(function(){
-  cp.safeSpawnP("node_modules/.bin/electron-rebuild");
+  return cp.safeSpawnP("node_modules/.bin/electron-rebuild");
 }).then(function(){
-  cp.safeSpawnP("script/grunt", ["download-electron"]);
-}).then(function(){
-  console.lg("Success: script/bootstrap complete");
-  process.exit(0);
-})
+  return process.exit(0);
+}).catch(function(err){
+  console.error(err.message);
+  console.error(err.stack);
+  process.exit(1);
+});

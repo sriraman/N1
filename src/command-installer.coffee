@@ -41,20 +41,12 @@ module.exports =
       if error?
         showErrorDialog(error)
       else
-        @installApmCommand resourcePath, true, (error) ->
-          if error?
-            showErrorDialog(error)
-          else
-            NylasEnv.confirm
-              message: "Commands installed."
-              detailedMessage: "The shell commands `n1` and `apm` are installed."
+        NylasEnv.confirm
+          message: "Commands installed."
+          detailedMessage: "The shell command `n1` is installed"
 
   installN1Command: (resourcePath, askForPrivilege, callback) ->
     commandPath = path.join(resourcePath, 'N1.sh')
-    @createSymlink commandPath, askForPrivilege, callback
-
-  installApmCommand: (resourcePath, askForPrivilege, callback) ->
-    commandPath = path.join(resourcePath, 'apm', 'node_modules', '.bin', 'apm')
     @createSymlink commandPath, askForPrivilege, callback
 
   createSymlink: (commandPath, askForPrivilege, callback) ->

@@ -18,15 +18,11 @@ var commands = [
   killnylas,
   [__dirname, '..', 'node_modules'],
   [__dirname, '..', 'build', 'node_modules'],
-  [__dirname, '..', 'apm', 'node_modules'],
-  [__dirname, '..', 'electron'],
   [home, '.nylas', '.node-gyp'],
   [home, '.nylas', 'storage'],
   [home, '.nylas', '.npm'],
   [home, '.nylas', 'compile-cache'],
-  [home, '.nylas', 'electron'],
-  [tmpdir, 'nylas-build'],
-  [tmpdir, 'nylas-cached-electrons'],
+  [tmpdir, 'nylas-build']
 ];
 var run = function() {
   var next = commands.shift();

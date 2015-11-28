@@ -670,8 +670,6 @@ class NylasEnvConstructor extends Model
     CommandInstaller = require './command-installer'
     CommandInstaller.installN1Command resourcePath, false, (error) ->
       console.warn error.message if error?
-    CommandInstaller.installApmCommand resourcePath, false, (error) ->
-      console.warn error.message if error?
 
   # Call this method when establishing a secondary application window
   # displaying a specific set of packages.

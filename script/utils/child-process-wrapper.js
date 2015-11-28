@@ -10,7 +10,7 @@ exports.safeExec = function(command, options, callback) {
   if (!options)
     options = {};
 
-  // This needed to be increased for `apm test` runs that generate many failures
+  // This needed to be increased for test runs that generate many failures
   // The default is 200KB.
   options.maxBuffer = 1024 * 1024;
 
@@ -48,6 +48,7 @@ exports.safeSpawn = function(command, args, options, callback) {
 
 exports.safeSpawnP = function(command, args, options) {
   options = options || {};
+  args = args || [];
   if(options.cwd) { console.log("$ " +"cd "+options.cwd); }
   console.log("$ " + command+" "+args.join(" "));
 

@@ -11,7 +11,7 @@ ServiceHub = require 'service-hub'
 Package = require './package'
 ThemePackage = require './theme-package'
 DatabaseStore = require './flux/stores/database-store'
-APMWrapper = require './apm-wrapper'
+NylasPackageRepo = require './nylas-package-repo'
 
 # Extended: Package manager for coordinating the lifecycle of N1 packages.
 #
@@ -134,22 +134,6 @@ class PackageManager
   ###
   Section: Package system data
   ###
-
-  # Public: Get the path to the apm command.
-  #
-  # Return a {String} file path to apm.
-  getApmPath: ->
-    return @apmPath if @apmPath?
-
-    commandName = 'apm'
-    commandName += '.cmd' if process.platform is 'win32'
-
-    @apmPath = path.join(process.resourcesPath, 'app', 'apm', 'bin', commandName)
-    if not fs.isFileSync(@apmPath)
-      @apmPath = path.join(@resourcePath, 'apm', 'bin', commandName)
-    if not fs.isFileSync(@apmPath)
-      @apmPath = path.join(@resourcePath, 'apm', 'node_modules', 'atom-package-manager', 'bin', commandName)
-    @apmPath
 
   # Public: Get the paths being used to look for packages.
   #
@@ -345,8 +329,8 @@ class PackageManager
 
         fs.copySync(packageSourceDir, packageTargetDir)
 
-        apm = new APMWrapper()
-        apm.installDependenciesInPackageDirectory packageTargetDir, (err) =>
+        packageRepo = new NylasPackageRepo()
+        packageRepo.installDependenciesInPackageDirectory packageTargetDir, (err) =>
           if err
             dialog.showMessageBox({
               type: 'warning'

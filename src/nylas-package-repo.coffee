@@ -5,7 +5,7 @@ semver = require 'semver'
 BufferedProcess = require './buffered-process'
 
 module.exports =
-class APMWrapper
+class NylasPackageRepo
 
   constructor: ->
     @packagePromises = []
@@ -48,9 +48,9 @@ class APMWrapper
   loadInstalled: (callback) ->
     args = ['ls', '--json']
     errorMessage = 'Fetching local packages failed.'
-    apmProcess = @runCommandReturningPackages(args, errorMessage, callback)
+    packageProc = @runCommandReturningPackages(args, errorMessage, callback)
 
-    handleProcessErrors(apmProcess, errorMessage, callback)
+    handleProcessErrors(packageProc, errorMessage, callback)
 
   loadFeatured: (options, callback) ->
     args = ['featured', '--json']
@@ -59,8 +59,8 @@ class APMWrapper
     args.push('--compatible', version) if semver.valid(version)
     errorMessage = 'Fetching featured packages failed.'
 
-    apmProcess = @runCommandReturningPackages(args, errorMessage, callback)
-    handleProcessErrors(apmProcess, errorMessage, callback)
+    packageProc = @runCommandReturningPackages(args, errorMessage, callback)
+    handleProcessErrors(packageProc, errorMessage, callback)
 
   loadOutdated: (callback) ->
     args = ['outdated', '--json']
@@ -68,22 +68,22 @@ class APMWrapper
     args.push('--compatible', version) if semver.valid(version)
     errorMessage = 'Fetching outdated packages and themes failed.'
 
-    apmProcess = @runCommandReturningPackages(args, errorMessage, callback)
-    handleProcessErrors(apmProcess, errorMessage, callback)
+    packageProc = @runCommandReturningPackages(args, errorMessage, callback)
+    handleProcessErrors(packageProc, errorMessage, callback)
 
   loadPackage: (packageName, callback) ->
     args = ['view', packageName, '--json']
     errorMessage = "Fetching package '#{packageName}' failed."
 
-    apmProcess = @runCommandReturningPackages(args, errorMessage, callback)
-    handleProcessErrors(apmProcess, errorMessage, callback)
+    packageProc = @runCommandReturningPackages(args, errorMessage, callback)
+    handleProcessErrors(packageProc, errorMessage, callback)
 
   loadCompatiblePackageVersion: (packageName, callback) ->
     args = ['view', packageName, '--json', '--compatible', @normalizeVersion(NylasEnv.getVersion())]
     errorMessage = "Fetching package '#{packageName}' failed."
 
-    apmProcess = @runCommandReturningPackages(args, errorMessage, callback)
-    handleProcessErrors(apmProcess, errorMessage, callback)
+    packageProc = @runCommandReturningPackages(args, errorMessage, callback)
+    handleProcessErrors(packageProc, errorMessage, callback)
 
   getInstalled: ->
     Promise.promisify(@loadInstalled, this)()
@@ -116,7 +116,7 @@ class APMWrapper
       args.push '--packages'
     errorMessage = "Searching for \u201C#{query}\u201D failed."
 
-    apmProcess = @runCommand args, null, (code, stdout, stderr) ->
+    packageProc = @runCommand args, null, (code, stdout, stderr) ->
       if code is 0
         try
           packages = JSON.parse(stdout) ? []
@@ -130,7 +130,7 @@ class APMWrapper
         error.stderr = stderr
         deferred.reject(error)
 
-    handleProcessErrors apmProcess, errorMessage, (error) ->
+    handleProcessErrors packageProc, errorMessage, (error) ->
       deferred.reject(error)
 
     deferred.promise
@@ -167,8 +167,8 @@ class APMWrapper
         error.stderr = stderr
         onError(error)
 
-    apmProcess = @runCommand(args, null, exit)
-    handleProcessErrors(apmProcess, errorMessage, onError)
+    packageProc = @runCommand(args, null, exit)
+    handleProcessErrors(packageProc, errorMessage, onError)
 
   unload: (packageName) ->
     if NylasEnv.packages.isPackageLoaded(name)
@@ -203,11 +203,11 @@ class APMWrapper
         error.stderr = stderr
         onError(error)
 
-    apmProcess = @runCommand(args, null, exit)
-    handleProcessErrors(apmProcess, errorMessage, onError)
+    packageProc = @runCommand(args, null, exit)
+    handleProcessErrors(packageProc, errorMessage, onError)
 
   installDependenciesInPackageDirectory: (dir, callback) ->
-    errorMessage = "Running apm install failed to install package dependencies."
+    errorMessage = "Failed to install package dependencies."
 
     exit = (code, stdout, stderr) =>
       if code is 0
@@ -218,8 +218,8 @@ class APMWrapper
         error.stderr = stderr
         callback(error)
 
-    apmProcess = @runCommand(['install'], {cwd: dir}, exit)
-    handleProcessErrors(apmProcess, errorMessage, callback)
+    packageProc = @runCommand(['install'], {cwd: dir}, exit)
+    handleProcessErrors(packageProc, errorMessage, callback)
 
   uninstall: (pack, callback) ->
     {name} = pack
@@ -230,7 +230,7 @@ class APMWrapper
     onError = (error) =>
       callback(error)
 
-    apmProcess = @runCommand ['uninstall', '--hard', name], null, (code, stdout, stderr) =>
+    packageProc = @runCommand ['uninstall', '--hard', name], null, (code, stdout, stderr) =>
       if code is 0
         @unload(name)
         callback?()
@@ -240,7 +240,7 @@ class APMWrapper
         error.stderr = stderr
         onError(error)
 
-    handleProcessErrors(apmProcess, errorMessage, onError)
+    handleProcessErrors(packageProc, errorMessage, onError)
 
   canUpgrade: (installedPackage, availableVersion) ->
     return false unless installedPackage?
@@ -253,13 +253,13 @@ class APMWrapper
 
   checkNativeBuildTools: ->
     deferred = Promise.defer()
-    apmProcess = @runCommand ['install', '--check'], null, (code, stdout, stderr) ->
+    packageProc = @runCommand ['install', '--check'], null, (code, stdout, stderr) ->
       if code is 0
         deferred.resolve()
       else
         deferred.reject(new Error())
 
-    apmProcess.onWillThrowError ({error, handle}) ->
+    packageProc.onWillThrowError ({error, handle}) ->
       handle()
       deferred.reject(error)
 
@@ -277,7 +277,7 @@ createProcessError = (message, processError) ->
   error.stderr = processError.message
   error
 
-handleProcessErrors = (apmProcess, message, callback) ->
-  apmProcess.onWillThrowError ({error, handle}) ->
+handleProcessErrors = (packageProc, message, callback) ->
+  packageProc.onWillThrowError ({error, handle}) ->
     handle()
     callback(createProcessError(message, error))

@@ -3,7 +3,7 @@ Reflux = require 'reflux'
 path = require 'path'
 fs = require 'fs-plus'
 PluginsActions = require './plugins-actions'
-{APMWrapper} = require 'nylas-exports'
+{NylasPackageRepo} = require 'nylas-exports'
 
 {ipcRenderer, shell, remote} = require 'electron'
 dialog = remote.require('dialog')
@@ -12,7 +12,7 @@ module.exports =
 PackagesStore = Reflux.createStore
 
   init: ->
-    @_apm = new APMWrapper()
+    @_packageRepo = new NylasPackageRepo()
 
     @_globalSearch = ""
     @_installedSearch = ""
@@ -43,7 +43,7 @@ PackagesStore = Reflux.createStore
     @listenTo PluginsActions.installPackage, (pkg) =>
       @_installing[pkg.name] = true
       @trigger(@)
-      @_apm.install pkg, (err) =>
+      @_packageRepo.install pkg, (err) =>
         if err
           delete @_installing[pkg.name]
           @_displayMessage("Sorry, an error occurred", err.toString())
@@ -56,7 +56,7 @@ PackagesStore = Reflux.createStore
       if NylasEnv.packages.isPackageLoaded(pkg.name)
         NylasEnv.packages.disablePackage(pkg.name)
         NylasEnv.packages.unloadPackage(pkg.name)
-      @_apm.uninstall pkg, (err) =>
+      @_packageRepo.uninstall pkg, (err) =>
         @_displayMessage("Sorry, an error occurred", err.toString()) if err
         @_onPackagesChanged()
 
@@ -109,12 +109,12 @@ PackagesStore = Reflux.createStore
     result
 
   _refreshFeatured: ->
-    @_apm.getFeatured({themes: false}).then (results) =>
+    @_packageRepo.getFeatured({themes: false}).then (results) =>
       @_featured.packages = results
       @trigger()
     .catch (err) =>
       # We may be offline
-    @_apm.getFeatured({themes: true}).then (results) =>
+    @_packageRepo.getFeatured({themes: true}).then (results) =>
       @_featured.themes = results
       @trigger()
     .catch (err) =>
@@ -126,7 +126,7 @@ PackagesStore = Reflux.createStore
   _refreshSearch: ->
     return unless @_globalSearch?.length > 0
 
-    @_apm.search(@_globalSearch).then (results) =>
+    @_packageRepo.search(@_globalSearch).then (results) =>
       @_searchResults =
         packages: results.filter ({theme}) -> not theme
         themes: results.filter ({theme}) -> theme
@@ -137,7 +137,7 @@ PackagesStore = Reflux.createStore
   _refreshSearchThrottled: _.debounce((-> @_refreshSearch()), 400)
 
   _onPackagesChanged: ->
-    @_apm.getInstalled().then (packages) =>
+    @_packageRepo.getInstalled().then (packages) =>
       for category in ['dev', 'user', 'core']
         packages[category] = packages[category].filter ({theme}) -> not theme
         packages[category].forEach (pkg) =>
@@ -146,7 +146,7 @@ PackagesStore = Reflux.createStore
       @_installed = packages
       @trigger()
 
-    @_apm.getOutdated().then (packages) =>
+    @_packageRepo.getOutdated().then (packages) =>
       @_newerVersions = {}
       for pkg in packages
         @_newerVersions[pkg.name] = pkg.latestVersion
@@ -159,7 +159,7 @@ PackagesStore = Reflux.createStore
     @trigger()
 
   _onUpdatePackage: (pkg) ->
-    @_apm.update(pkg, pkg.newerVersion)
+    @_packageRepo.update(pkg, pkg.newerVersion)
 
   _onInstallPackage: ->
     {resourcePath} = NylasEnv.getLoadSettings()

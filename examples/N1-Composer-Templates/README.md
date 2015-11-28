@@ -25,5 +25,5 @@ experience.
    package to install it!
 
    > When you install packages, they're moved to `~/.nylas/packages`,
-   > and N1 runs `apm install` on the command line to fetch dependencies
+   > and N1 runs `npm install` on the command line to fetch dependencies
    > listed in the package's `package.json`

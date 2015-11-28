@@ -1,6 +1,3 @@
-# N1 Build Environment
-Node version 0.10.x (Due to the version of electron currently used.)
-
 # N1 Building and Tasks
 
 This folder contains tasks to create production builds of N1
@@ -24,4 +21,4 @@ NOTE: Run all of these from the N1 root folder.
     `script/grunt build`
 
 The build folder has its own package.json and is isolated so we can use `npm`
-to compile against v8's headers instead of `apm`
+to compile against v8's headers instead of Electron/Chrome's

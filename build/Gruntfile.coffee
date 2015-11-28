@@ -58,8 +58,6 @@ module.exports = (grunt) ->
   grunt.loadNpmTasks('grunt-contrib-less')
   grunt.loadNpmTasks('grunt-shell')
   grunt.loadNpmTasks('grunt-markdown')
-  grunt.loadNpmTasks('grunt-download-electron')
-  grunt.loadNpmTasks('grunt-electron-installer')
   grunt.loadNpmTasks('grunt-peg')
   grunt.loadTasks('tasks')
 
@@ -80,7 +78,6 @@ module.exports = (grunt) ->
   installDir = grunt.option('install-dir')
 
   home = if process.platform is 'win32' then process.env.USERPROFILE else process.env.HOME
-  electronDownloadDir = path.join(home, '.nylas', 'electron')
 
   symbolsDir = path.join(buildDir, 'Atom.breakpad.syms')
   shellAppDir = path.join(buildDir, appName)
@@ -327,13 +324,6 @@ module.exports = (grunt) ->
             _.extend(context, parsed.attributes)
             parsed.body
 
-    'download-electron':
-      version: packageJson.electronVersion
-      outputDir: 'electron'
-      downloadDir: electronDownloadDir
-      rebuild: true  # rebuild native modules after electron is updated
-      token: process.env.NYLAS_ACCESS_TOKEN
-
     'create-windows-installer':
       installer:
         appDirectory: shellAppDir
@@ -359,7 +349,7 @@ module.exports = (grunt) ->
   grunt.registerTask('test', ['shell:kill-n1', 'run-edgehill-specs'])
   grunt.registerTask('docs', ['build-docs', 'render-docs'])
 
-  ciTasks = ['output-disk-space', 'download-electron', 'build']
+  ciTasks = ['output-disk-space', 'build']
   ciTasks.push('dump-symbols') if process.platform isnt 'win32'
   ciTasks.push('set-version', 'lint', 'generate-asar')
   ciTasks.push('test') if process.platform isnt 'win32'
@@ -375,7 +365,7 @@ module.exports = (grunt) ->
 
   grunt.registerTask('ci', ciTasks)
 
-  defaultTasks = ['download-electron', 'build', 'set-version', 'generate-asar']
+  defaultTasks = ['build', 'set-version', 'generate-asar']
   # We don't run `install` on linux because you need to run `sudo`.
   # See docs/build-instructions/linux.md
   # `sudo script/grunt install`
