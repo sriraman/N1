@@ -37,6 +37,8 @@ exports.safeSpawn = function(command, args, options, callback) {
   var child = childProcess.spawn(command, args, options);
   child.on('error', function(error) {
     console.error('Command \'' + command + '\' failed: ' + error.message);
+    console.error(error.stack);
+    process.exit(1);
   });
   child.on('exit', function(code) {
     if (code != 0) {
@@ -49,12 +51,12 @@ exports.safeSpawn = function(command, args, options, callback) {
 exports.safeSpawnP = function(command, args, options) {
   options = options || {};
   args = args || [];
-  if(options.cwd) { console.log("$ " +"cd "+options.cwd); }
-  console.log("$ " + command+" "+args.join(" "));
 
   return new Promise(function(resolve, reject) {
+    from = options.cwd ? " (cwd: "+options.cwd+")" : ""
+    console.log("---> $ " + command+" "+args.join(" ")+from);
+
     exports.safeSpawn(command, args, options, function(){
-      if(options.cwd) { console.log("$ " +"cd -"); }
       return resolve()
     });
   }).catch(function(err){
@@ -67,10 +69,13 @@ exports.safeSpawnP = function(command, args, options) {
 exports.spawnInDirs = function(command, args, dirs) {
   p = Promise.resolve();
   dirs.forEach(function(dir){
-    console.log("In "+dir)
-    p.then(function(){
-      console.log("Running safe spawn")
-      return exports.safeSpawnP(command, args, {cwd: dir})
+    if (typeof args === 'function') {
+      argsArr = args(dir);
+    } else {
+      argsArr = args;
+    }
+    p = p.then(function(){
+      return exports.safeSpawnP(command, argsArr, {cwd: dir})
     }).catch(function(err){
       console.error(err.message);
       console.error(err.stack);

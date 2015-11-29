@@ -1,18 +1,31 @@
 #!/usr/bin/env node
 var cp = require('./utils/child-process-wrapper.js');
+var path = require('path');
 var pluginDirsWithDependencies = require('./utils/internal-packages.js').pluginDirsWithDependencies;
+var rootDir = path.resolve(path.dirname(__dirname))
+var pluginDirs = pluginDirsWithDependencies()
 
 // Make sure we're exucuting from the N1 root directory
-process.chdir(require('path').dirname(__dirname));
+process.chdir(rootDir);
 
 // Step 1: Run `npm install` in root, build, and plugin directories
-npmInstallDirs = [".", "./build"].concat(pluginDirsWithDependencies());
-cp.spawnInDirs("npm", ["install"], npmInstallDirs).then(function(){
-  console.log("Done npm install")
+npmInstallDirs = [rootDir, path.join(rootDir, "build")].concat(pluginDirs)
 
-// Step 2: Run `electron-rebuild` in root, plugin directories
-  rebuildDirs = ["."].concat(pluginDirs)
-  return cp.spawnInDirs("node_modules/.bin/electron-rebuild", [], rebuildDirs)
+cp.spawnInDirs("npm", ["install"], npmInstallDirs).then(function(){
+
+// Step 2: Run `electron-rebuild` in root and plugin directories
+
+  // electron-rebuild needs to know where the electron-prebuilt module is
+  // to determine the correct Electron version
+  argsFn = function(rebuildDir) {
+    electronDir = path.join(rootDir, "node_modules", "electron-prebuilt")
+    return ["--electron-prebuilt-dir="+electronDir,
+            "--module-dir="+rebuildDir]
+  }
+
+  rebuildDirs = [rootDir].concat(pluginDirs)
+  electronRebuildCmd = path.join(rootDir, "node_modules", ".bin", "electron-rebuild")
+  return cp.spawnInDirs(electronRebuildCmd, argsFn, rebuildDirs)
 
 }).then(function() {
   return process.exit(0);
