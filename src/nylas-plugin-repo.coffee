@@ -12,7 +12,14 @@ class NylasPluginRepo
     @packagePromises = []
 
   runCommand: (args, options, callback) ->
-    command = path.join(NylasEnv.resourcePath, "node_modules", ".bin", "npm")
+
+    ## TODO: Use npm instead of apm
+    #
+    # atom-package-manager is the ONLY one of our packages that doesn't
+    # natively build under node 4.x! Needed to downgrade from 1.5.0 to 1.3.0
+    # to get Node 4.x support
+    command = path.join(NylasEnv.resourcePath, "node_modules", ".bin", "apm")
+
     outputLines = []
     stdout = (lines) -> outputLines.push(lines)
     errorLines = []
@@ -20,10 +27,19 @@ class NylasPluginRepo
     exit = (code) ->
       callback(code, outputLines.join('\n'), errorLines.join('\n'))
 
-    pluginDir = path.join(NylasEnv.getConfigDirPath(), "packages")
-    args.push("--prefix="+pluginDir)
+    options ||= {}
+    options.env =
+      ATOM_API_URL: 'https://edgehill-packages.nylas.com/api'
+      ATOM_HOME: NylasEnv.getConfigDirPath()
 
-    args.push("--registry="+"https://edgehill-packages.nylas.com/")
+    # TODO: If we wanted to use npm instaed of apm, all we'd have to do is
+    # pass npm the following two arguments and updated Edgehill server to be
+    # a npm-spec package registry
+    #
+    # pluginDir = path.join(NylasEnv.getConfigDirPath(), "packages")
+    # args.push("--prefix="+pluginDir)
+    #
+    # args.push("--registry="+"https://edgehill-packages.nylas.com/")
 
 
     if process.platform is "win32"
