@@ -1,17 +1,18 @@
 _ = require 'underscore'
 Q = require 'q'
+path = require('path')
 semver = require 'semver'
 
 BufferedProcess = require './buffered-process'
 
 module.exports =
-class NylasPackageRepo
+class NylasPluginRepo
 
   constructor: ->
     @packagePromises = []
 
   runCommand: (args, options, callback) ->
-    command = NylasEnv.packages.getApmPath()
+    command = path.join(NylasEnv.resourcePath, "node_modules", ".bin", "npm")
     outputLines = []
     stdout = (lines) -> outputLines.push(lines)
     errorLines = []
@@ -19,15 +20,17 @@ class NylasPackageRepo
     exit = (code) ->
       callback(code, outputLines.join('\n'), errorLines.join('\n'))
 
-    options ||= {}
-    options.env =
-      ATOM_API_URL: 'https://edgehill-packages.nylas.com/api'
-      ATOM_HOME: NylasEnv.getConfigDirPath()
+    pluginDir = path.join(NylasEnv.getConfigDirPath(), "packages")
+    args.push("--prefix="+pluginDir)
+
+    args.push("--registry="+"https://edgehill-packages.nylas.com/")
+
 
     if process.platform is "win32"
       options.env["ProgramFiles"] = process.env.ProgramFiles
 
     args.push('--no-color')
+
     new BufferedProcess({command, args, stdout, stderr, exit, options})
 
   runCommandReturningPackages: (args, errorMessage, callback) ->

@@ -167,6 +167,8 @@ class NylasEnvConstructor extends Model
 
     {devMode, safeMode, resourcePath, windowType} = @getLoadSettings()
 
+    @resourcePath = resourcePath
+
     document.body.classList.add("platform-#{process.platform}")
     document.body.classList.add("window-type-#{windowType}")
 

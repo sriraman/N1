@@ -11,7 +11,7 @@ ServiceHub = require 'service-hub'
 Package = require './package'
 ThemePackage = require './theme-package'
 DatabaseStore = require './flux/stores/database-store'
-NylasPackageRepo = require './nylas-package-repo'
+NylasPluginRepo = require './nylas-plugin-repo'
 
 # Extended: Package manager for coordinating the lifecycle of N1 packages.
 #
@@ -329,7 +329,7 @@ class PackageManager
 
         fs.copySync(packageSourceDir, packageTargetDir)
 
-        packageRepo = new NylasPackageRepo()
+        packageRepo = new NylasPluginRepo()
         packageRepo.installDependenciesInPackageDirectory packageTargetDir, (err) =>
           if err
             dialog.showMessageBox({

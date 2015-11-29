@@ -3,7 +3,7 @@ Reflux = require 'reflux'
 path = require 'path'
 fs = require 'fs-plus'
 PluginsActions = require './plugins-actions'
-{NylasPackageRepo} = require 'nylas-exports'
+{NylasPluginRepo} = require 'nylas-exports'
 
 {ipcRenderer, shell, remote} = require 'electron'
 dialog = remote.require('dialog')
@@ -12,7 +12,7 @@ module.exports =
 PackagesStore = Reflux.createStore
 
   init: ->
-    @_packageRepo = new NylasPackageRepo()
+    @_packageRepo = new NylasPluginRepo()
 
     @_globalSearch = ""
     @_installedSearch = ""
