@@ -63,3 +63,19 @@ exports.safeSpawnP = function(command, args, options) {
     process.exit(1);
   });
 }
+
+exports.spawnInDirs = function(command, args, dirs) {
+  p = Promise.resolve();
+  dirs.forEach(function(dir){
+    console.log("In "+dir)
+    p.then(function(){
+      console.log("Running safe spawn")
+      return exports.safeSpawnP(command, args, {cwd: dir})
+    }).catch(function(err){
+      console.error(err.message);
+      console.error(err.stack);
+      process.exit(1);
+    });
+  })
+  return p
+}

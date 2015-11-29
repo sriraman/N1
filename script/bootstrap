@@ -1,14 +1,22 @@
 #!/usr/bin/env node
 var cp = require('./utils/child-process-wrapper.js');
+var pluginDirsWithDependencies = require('./utils/internal-packages.js').pluginDirsWithDependencies;
+
+// Make sure we're exucuting from the N1 root directory
 process.chdir(require('path').dirname(__dirname));
 
-cp.safeSpawnP("npm", ["install"], {cwd: "./build"}).then(function(){
-  return cp.safeSpawnP("npm", ["install"]);
-}).then(function(){
-  return cp.safeSpawnP("node_modules/.bin/electron-rebuild");
-}).then(function(){
+// Step 1: Run `npm install` in root, build, and plugin directories
+npmInstallDirs = [".", "./build"].concat(pluginDirsWithDependencies());
+cp.spawnInDirs("npm", ["install"], npmInstallDirs).then(function(){
+  console.log("Done npm install")
+
+// Step 2: Run `electron-rebuild` in root, plugin directories
+  rebuildDirs = ["."].concat(pluginDirs)
+  return cp.spawnInDirs("node_modules/.bin/electron-rebuild", [], rebuildDirs)
+
+}).then(function() {
   return process.exit(0);
-}).catch(function(err){
+}).catch(function(err) {
   console.error(err.message);
   console.error(err.stack);
   process.exit(1);
