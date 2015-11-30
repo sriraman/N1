@@ -49,14 +49,20 @@ exports.safeSpawn = function(command, args, options, callback) {
 }
 
 exports.crossPlatformCommand = function(command) {
-  winCommands = {
-    "npm": "npm.cmd",
-    "grunt": "grunt.cmd"
-  }
+  winCommands = [
+    /npm$/,
+    /grunt$/,
+    /electron-rebuild$/
+  ]
   if (process.platform === "win32") {
-    return winCommands[command] ? winCommands[command] : command
+    for (var i=0; i < winCommands.length; i++) {
+      if (winCommands[i].test(command)) {
+        return command+".cmd"
+      }
+    }
+    return command;
   } else {
-    return command
+    return command;
   }
 }
 
