@@ -88,12 +88,12 @@ exports.safeSpawnP = function(command, args, options) {
 exports.spawnInDirs = function(command, args, dirs) {
   p = Promise.resolve();
   dirs.forEach(function(dir){
-    if (typeof args === 'function') {
-      argsArr = args(dir);
-    } else {
-      argsArr = args;
-    }
     p = p.then(function(){
+      if (typeof args === 'function') {
+        argsArr = args(dir);
+      } else {
+        argsArr = args;
+      }
       return exports.safeSpawnP(command, argsArr, {cwd: dir})
     }).catch(function(err){
       console.error(err.message);
