@@ -48,9 +48,22 @@ exports.safeSpawn = function(command, args, options, callback) {
   });
 }
 
+exports.crossPlatformCommand = function(command) {
+  winCommands = {
+    "npm": "npm.cmd",
+    "grunt": "grunt.cmd"
+  }
+  if (process.platform === "win32") {
+    return winCommands[command] ? winCommands[command] : command
+  } else {
+    return command
+  }
+}
+
 exports.safeSpawnP = function(command, args, options) {
   options = options || {};
   args = args || [];
+  command = exports.crossPlatformCommand(command)
 
   return new Promise(function(resolve, reject) {
     from = options.cwd ? " (cwd: "+options.cwd+")" : ""
