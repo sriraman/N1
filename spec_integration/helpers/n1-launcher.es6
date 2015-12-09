@@ -125,8 +125,10 @@ export default class N1Launcher extends Application {
         setTimeout(()=>{
           return N1Launcher.waitUntilMatchingWindowLoaded(client, matcher, now).then(resolve)
         }, delay)
+        return null
       }).catch((err) => {
         console.error(err);
+        return null
       });
     });
   }

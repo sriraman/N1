@@ -86,31 +86,31 @@ declareOptions = (argv) ->
     `n1 --test` to run unit tests.
   """
   options.alias('d', 'dev').boolean('d')
-         .describe('d', 'Run in development mode.')
+    .describe('d', 'Run in development mode.')
 
   options.alias('t', 'test').boolean('t')
-         .describe('t', 'Run the specified specs and exit with error code on failures.')
+    .describe('t', 'Run the specified specs and exit with error code on failures.')
 
   options.boolean('safe')
-         .describe('safe', 'Do not load packages from ~/.nylas/packages or ~/.nylas/dev/packages.')
+    .describe('safe', 'Do not load packages from ~/.nylas/packages or ~/.nylas/dev/packages.')
 
   options.alias('h', 'help').boolean('h')
-         .describe('h', 'Print this usage message.')
+    .describe('h', 'Print this usage message.')
 
   options.alias('l', 'log-file').string('l')
-         .describe('l', 'Log all test output to file.')
+    .describe('l', 'Log all test output to file.')
 
   options.alias('c', 'config-dir-path').string('c')
-         .describe('c', 'Override the path to the N1 configuration directory')
+    .describe('c', 'Override the path to the N1 configuration directory')
 
   options.alias('s', 'spec-directory').string('s')
-         .describe('s', 'Override the directory from which to run package specs')
+    .describe('s', 'Override the directory from which to run package specs')
 
   options.alias('f', 'spec-file-pattern').string('f')
-         .describe('f', 'Override the default file regex to determine which tests should run (defaults to "-spec\.(coffee|js|jsx|cjsx|es6|es)$" )')
+    .describe('f', 'Override the default file regex to determine which tests should run (defaults to "-spec\.(coffee|js|jsx|cjsx|es6|es)$" )')
 
   options.alias('v', 'version').boolean('v')
-         .describe('v', 'Print the version.')
+    .describe('v', 'Print the version.')
 
   return options
 

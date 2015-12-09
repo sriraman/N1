@@ -1,7 +1,8 @@
 import N1Launcher from './helpers/n1-launcher'
 import {currentConfig} from './helpers/config-helper'
+import {assertBasicWindow} from './helpers/shared-assertions'
 
-fdescribe('Logged in app boot', () => {
+describe('Logged in app boot', () => {
   beforeAll((done)=>{
     // Boot in dev mode with no arguments
     this.app = new N1Launcher(["--dev"]);
@@ -33,30 +34,7 @@ fdescribe('Logged in app boot', () => {
     })
   });
 
-
-  it("has main window visible", (done)=> {
-    this.app.client.isWindowVisible()
-    .then((result)=>{ expect(result).toBe(true) })
-    .finally(done)
-  });
-
-  it("has main window focused", (done)=> {
-    this.app.client.isWindowFocused()
-    .then((result)=>{ expect(result).toBe(true) })
-    .finally(done)
-  });
-
-  it("isn't minimized", (done)=> {
-    this.app.client.isWindowMinimized()
-    .then((result)=>{ expect(result).toBe(false) })
-    .finally(done)
-  });
-
-  it("doesn't have the dev tools open", (done)=> {
-    this.app.client.isWindowDevToolsOpened()
-    .then((result)=>{ expect(result).toBe(false) })
-    .finally(done)
-  });
+  assertBasicWindow.call(this)
 
   it("restored its width from file", (done)=> {
     this.app.client.getWindowWidth()
