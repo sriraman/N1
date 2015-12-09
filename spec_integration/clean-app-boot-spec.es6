@@ -3,13 +3,13 @@ import N1Launcher from './n1-launcher'
 describe('Clean app boot', function() {
   beforeAll((done)=>{
     // Boot in dev mode with no arguments
-    this.app = new N1Launcher(["--dev"]);
-    this.app.mainWindowReady().finally(done);
+    this.app = new N1Launcher(["--dev"], N1Launcher.CLEAR_CONFIG);
+    this.app.onboardingWindowReady().finally(done);
   });
 
   afterAll((done)=> {
     if (this.app && this.app.isRunning()) {
-      this.app.stop().then(done);
+      this.app.stop().finally(done);
     } else {
       done()
     }

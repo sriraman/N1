@@ -36,8 +36,3 @@ process.on("unhandledRejection", function(reason, promise) {
   if (reason.stack) { console.errorColor(reason.stack); }
   console.errorColor(promise);
 });
-
-
-beforeAll(function(){
-  require('./config-helper').setupDefaultConfig()
-});

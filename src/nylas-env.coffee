@@ -656,7 +656,7 @@ class NylasEnvConstructor extends Model
   showRootWindow: ->
     cover = document.getElementById("application-loading-cover")
     cover.classList.add('visible')
-    document.body.classList.add("main-window-loaded")
+    document.body.classList.add("window-loaded")
     @restoreWindowDimensions()
     @getCurrentWindow().setMinimumSize(875, 500)
 

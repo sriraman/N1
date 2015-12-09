@@ -1,36 +1,51 @@
 import path from 'path'
 import {Application} from 'spectron';
-import {FAKE_DATA_PATH} from './config-helper';
+import {clearConfig,
+        setupDefaultConfig,
+        FAKE_DATA_PATH,
+        CONFIG_DIR_PATH} from './config-helper';
 
 export default class N1Launcher extends Application {
-  constructor(launchArgs = []) {
+  constructor(launchArgs = [], configOpts) {
+
+    if (configOpts === N1Launcher.CLEAR_CONFIG) {
+      clearConfig()
+    } else {
+      setupDefaultConfig()
+    }
+
     super({
       path: N1Launcher.electronPath(),
       args: [jasmine.NYLAS_ROOT_PATH].concat(N1Launcher.defaultNylasArgs()).concat(launchArgs)
     })
   }
 
+  onboardingWindowReady() {
+    return this.windowReady(N1Launcher.secondaryWindowLoadedMatcher)
+  }
+
   mainWindowReady() {
-    return this.windowReady(N1Launcher.mainWindowMatcher).then(() => {
+    return this.windowReady(N1Launcher.mainWindowLoadedMatcher).then(() => {
       return new Promise((resolve, reject)=>{
         this.client.execute((FAKE_DATA_PATH)=>{
-          require('nylas-exports').AccountStore._importFakeData(FAKE_DATA_PATH)
+          $n.AccountStore._importFakeData(FAKE_DATA_PATH)
         }, FAKE_DATA_PATH)
 
         // We need to wait for the client exeuction to finish.
         //
         // `this.client.execute` returns immediately and doesn't wait for
         // the Promise to finish
-        setTimeout(resolve, 100)
+        setTimeout(resolve, 2000)
       })
     });
   }
 
   popoutComposerWindowReady() {
-    return this.windowReady(N1Launcher.mainWindowMatcher).then(() => {
-      return this.client.execute(()=>{
-        require('nylas-exports').Actions.composeNewBlankDraft();
-      })
+    return this.windowReady(N1Launcher.mainWindowLoadedMatcher).then(() => {
+      return this.client.execute((FAKE_DATA_PATH)=>{
+        $n.AccountStore._importFakeData(FAKE_DATA_PATH)
+        $n.Actions.composeNewBlankDraft();
+      }, FAKE_DATA_PATH)
     }).then(()=>{
       return N1Launcher.waitUntilMatchingWindowLoaded(this.client, N1Launcher.composerWindowMatcher).then((windowId)=>{
         return this.client.window(windowId)
@@ -46,8 +61,13 @@ export default class N1Launcher extends Application {
     });
   }
 
-  static mainWindowMatcher(client) {
-    return client.isExisting(".main-window-loaded").then((exists)=>{
+  static secondaryWindowLoadedMatcher(client) {
+    // The last thing secondary windows do once they boot is call "show"
+    return client.isWindowVisible()
+  }
+
+  static mainWindowLoadedMatcher(client) {
+    return client.isExisting(".window-loaded").then((exists)=>{
       if (exists) {return true} else {return false}
     })
   }
@@ -65,7 +85,9 @@ export default class N1Launcher extends Application {
   }
 
   static defaultNylasArgs() {
-    return ["--enable-logging", `--resource-path=${jasmine.NYLAS_ROOT_PATH}`]
+    return ["--enable-logging",
+            `--resource-path=${jasmine.NYLAS_ROOT_PATH}`,
+            `--config-dir-path=${CONFIG_DIR_PATH}`]
   }
 
   static electronPath() {
@@ -125,3 +147,4 @@ export default class N1Launcher extends Application {
     })
   }
 }
+N1Launcher.CLEAR_CONFIG = "CLEAR_CONFIG"
