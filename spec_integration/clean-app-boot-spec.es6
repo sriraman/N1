@@ -1,4 +1,4 @@
-import N1Launcher from './n1-launcher'
+import N1Launcher from './helpers/n1-launcher'
 
 describe('Clean app boot', function() {
   beforeAll((done)=>{

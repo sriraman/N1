@@ -1,5 +1,5 @@
-import N1Launcher from './n1-launcher'
-import {currentConfig} from './config-helper'
+import N1Launcher from './helpers/n1-launcher'
+import {currentConfig} from './helpers/config-helper'
 
 fdescribe('Logged in app boot', () => {
   beforeAll((done)=>{
