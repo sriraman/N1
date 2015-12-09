@@ -80,7 +80,7 @@ class Application
     if @config.get('devMode')
       @devMode = true
 
-    @windowManager = new WindowManager({@resourcePath, @config, @devMode, @safeMode})
+    @windowManager = new WindowManager({@resourcePath, @configDirPath, @config, @devMode, @safeMode})
     @autoUpdateManager = new AutoUpdateManager(@version, @config, @specMode)
     @applicationMenu = new ApplicationMenu(@version)
     @_databasePhase = 'setup'
@@ -490,4 +490,4 @@ class Application
     isSpec = true
     devMode = true
     safeMode ?= false
-    new NylasWindow({bootstrapScript, resourcePath, exitWhenDone, isSpec, devMode, specDirectory, specFilePattern, logFile, safeMode, showSpecsInWindow})
+    new NylasWindow({bootstrapScript, @configDirPath, resourcePath, exitWhenDone, isSpec, devMode, specDirectory, specFilePattern, logFile, safeMode, showSpecsInWindow})

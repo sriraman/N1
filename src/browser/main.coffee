@@ -36,7 +36,10 @@ start = ->
 
 setupConfigDir = (args) ->
   # https://github.com/atom/atom/issues/8281
-  defaultConfigDir = path.join(app.getPath('home'), '.nylas')
+  if args.specMode
+    defaultConfigDir = path.join(app.getPath('home'), '.nylas-spec')
+  else
+    defaultConfigDir = path.join(app.getPath('home'), '.nylas')
 
   configDirPath = args.configDirPath ?
                   process.env.NYLAS_HOME ?
