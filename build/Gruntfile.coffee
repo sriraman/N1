@@ -362,7 +362,7 @@ module.exports = (grunt) ->
   grunt.registerTask('lint',
     ['coffeelint', 'csslint', 'lesslint', 'nylaslint', 'eslint'])
 
-  grunt.registerTask('test', ['shell:kill-n1', 'run-unit-tests'])
+  grunt.registerTask('test', ['shell:kill-n1', 'run-unit-tests', 'run-integration-tests'])
 
   grunt.registerTask('docs', ['build-docs', 'render-docs'])
 
