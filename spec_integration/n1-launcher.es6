@@ -1,7 +1,8 @@
 import path from 'path'
 import {Application} from 'spectron';
+import {FAKE_DATA_PATH} from './config-helper';
 
-class N1Launcher extends Application {
+export default class N1Launcher extends Application {
   constructor(launchArgs = []) {
     super({
       path: N1Launcher.electronPath(),
@@ -10,7 +11,19 @@ class N1Launcher extends Application {
   }
 
   mainWindowReady() {
-    return this.windowReady(N1Launcher.mainWindowMatcher)
+    return this.windowReady(N1Launcher.mainWindowMatcher).then(() => {
+      return new Promise((resolve, reject)=>{
+        this.client.execute((FAKE_DATA_PATH)=>{
+          require('nylas-exports').AccountStore._importFakeData(FAKE_DATA_PATH)
+        }, FAKE_DATA_PATH)
+
+        // We need to wait for the client exeuction to finish.
+        //
+        // `this.client.execute` returns immediately and doesn't wait for
+        // the Promise to finish
+        setTimeout(resolve, 100)
+      })
+    });
   }
 
   popoutComposerWindowReady() {
@@ -26,12 +39,11 @@ class N1Launcher extends Application {
   }
 
   windowReady(matcher) {
-    // Wrap in a Bluebird promise so we have `.finally on the return`
-    return Promise.resolve(this.start().then(()=>{
+    return this.start().then(()=>{
       return N1Launcher.waitUntilMatchingWindowLoaded(this.client, matcher).then((windowId)=>{
         return this.client.window(windowId)
       })
-    }));
+    });
   }
 
   static mainWindowMatcher(client) {
@@ -83,7 +95,7 @@ class N1Launcher extends Application {
   static waitUntilMatchingWindowLoaded(client, matcher, lastCheck=0) {
     var CHECK_EVERY = 500
     return new Promise((resolve, reject) => {
-      client.windowHandles().then(({value}) => {
+      return client.windowHandles().then(({value}) => {
         return Promise.mapSeries(value, (windowId)=>{
           return N1Launcher.switchAndCheckForMatch(client, windowId, matcher)
         })
@@ -95,7 +107,7 @@ class N1Launcher extends Application {
         var now = Date.now();
         var delay = Math.max(CHECK_EVERY - (now - lastCheck), 0)
         setTimeout(()=>{
-          N1Launcher.waitUntilMatchingWindowLoaded(client, matcher, now).then(resolve)
+          return N1Launcher.waitUntilMatchingWindowLoaded(client, matcher, now).then(resolve)
         }, delay)
       }).catch((err) => {
         console.error(err);
@@ -113,5 +125,3 @@ class N1Launcher extends Application {
     })
   }
 }
-
-module.exports = {N1Launcher}
