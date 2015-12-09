@@ -1,6 +1,7 @@
 import N1Launcher from './n1-launcher'
+import {currentConfig} from './config-helper'
 
-describe('Logged in app boot', () => {
+fdescribe('Logged in app boot', () => {
   beforeAll((done)=>{
     // Boot in dev mode with no arguments
     this.app = new N1Launcher(["--dev"]);
@@ -14,6 +15,24 @@ describe('Logged in app boot', () => {
       done()
     }
   });
+
+  it("has the autoupdater pointing to the correct url", () => {
+    this.app.client.execute(()=>{
+      app = require('remote').getGlobal('application')
+      return {
+        platform: process.platform,
+        arch: process.arch,
+        feedUrl: app.autoUpdateManager.feedURL
+      }
+    }).then(({value})=>{
+      base = "https://edgehill.nylas.com/update-check"
+      config = currentConfig()
+      email = encodeURIComponent(config.email)
+      url = `${base}?platform=${value.platform}&arch=${value.arch}&version=${config.version}&id=${config.id}&emails=${email}`
+      expect(value.feedUrl).toEqual(url)
+    })
+  });
+
 
   it("has main window visible", (done)=> {
     this.app.client.isWindowVisible()
@@ -39,15 +58,15 @@ describe('Logged in app boot', () => {
     .finally(done)
   });
 
-  it("has width", (done)=> {
+  it("restored its width from file", (done)=> {
     this.app.client.getWindowWidth()
-    .then((result)=>{ expect(result).toBeGreaterThan(0) })
+    .then((result)=>{ expect(result).toBe(1234) })
     .finally(done)
   });
 
-  it("has height", (done)=> {
+  it("restored its height from file", (done)=> {
     this.app.client.getWindowHeight()
-    .then((result)=>{ expect(result).toBeGreaterThan(0) })
+    .then((result)=>{ expect(result).toBe(789) })
     .finally(done)
   });
 });

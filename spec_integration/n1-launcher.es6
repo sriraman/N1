@@ -26,17 +26,11 @@ export default class N1Launcher extends Application {
 
   mainWindowReady() {
     return this.windowReady(N1Launcher.mainWindowLoadedMatcher).then(() => {
-      return new Promise((resolve, reject)=>{
-        this.client.execute((FAKE_DATA_PATH)=>{
-          $n.AccountStore._importFakeData(FAKE_DATA_PATH)
-        }, FAKE_DATA_PATH)
-
-        // We need to wait for the client exeuction to finish.
-        //
-        // `this.client.execute` returns immediately and doesn't wait for
-        // the Promise to finish
-        setTimeout(resolve, 2000)
-      })
+      return this.client
+                 .timeoutsAsyncScript(5000)
+                 .executeAsync((FAKE_DATA_PATH, done) => {
+        $n.AccountStore._importFakeData(FAKE_DATA_PATH).then(done);
+      }, FAKE_DATA_PATH)
     });
   }
 
